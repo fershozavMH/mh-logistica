@@ -38,7 +38,7 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
     : order.gastosGenerales.map((g) => ({ label: g.descripcion, valor: g.monto }));
 
   return (
-    <div className="min-h-screen bg-gray-100 print:bg-white">
+    <div className="h-full overflow-y-auto bg-gray-100 print:bg-white">
       <div className="no-print sticky top-0 z-10 bg-white border-b border-border px-6 h-16 flex items-center justify-between">
         <Link href={s ? `/embarques/${s.id}` : "/costos"} className="flex items-center gap-2 text-sm text-ink-secondary hover:text-ink-primary">
           <ArrowLeft size={16} />
