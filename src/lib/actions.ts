@@ -1000,6 +1000,7 @@ export async function crearCotizacion(formData: FormData) {
       costoFleteMx: num(formData, "costoFleteMx"),
       costoPermiso: num(formData, "costoPermiso"),
       ivaPorcentaje: num(formData, "ivaPorcentaje"),
+      notas: str(formData, "notas") ?? null,
     },
   });
 
@@ -1025,6 +1026,7 @@ export async function editarCotizacion(id: string, formData: FormData) {
       costoFleteMx: num(formData, "costoFleteMx"),
       costoPermiso: num(formData, "costoPermiso"),
       ivaPorcentaje: num(formData, "ivaPorcentaje"),
+      notas: str(formData, "notas") ?? null,
     },
   });
   revalidatePath("/cotizaciones");

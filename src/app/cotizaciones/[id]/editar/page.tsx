@@ -96,6 +96,17 @@ export default async function EditarCotizacionPage({ params }: { params: Promise
               </div>
             </div>
 
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-ink-secondary">Comentarios (opcional)</span>
+              <textarea
+                name="notas"
+                defaultValue={c.notas ?? ""}
+                rows={3}
+                placeholder="Se muestran en la cotización"
+                className="rounded-lg border border-border px-3 py-2 text-sm resize-none"
+              />
+            </label>
+
             <div className="flex items-center gap-2 pt-2">
               <Link
                 href={`/cotizaciones/${c.id}`}

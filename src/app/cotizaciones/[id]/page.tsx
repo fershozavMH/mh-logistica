@@ -163,6 +163,13 @@ export default async function CotizacionPage({ params }: { params: Promise<{ id:
           </tfoot>
         </table>
 
+        {c.notas && (
+          <div className="mb-6 print:mb-3 rounded-lg border border-border p-3 print:p-2">
+            <p className="text-xs font-semibold text-ink-secondary mb-1">Comentarios</p>
+            <p className="text-sm text-ink-primary whitespace-pre-wrap">{c.notas}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-10 mt-16 pt-8 print:mt-8 print:pt-3">
           <div className="text-center">
             <div className="border-t border-gray-400 pt-2">

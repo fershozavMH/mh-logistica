@@ -130,6 +130,16 @@ export default async function CotizacionesPage({
                 </div>
               </div>
 
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="text-ink-secondary">Comentarios (opcional)</span>
+                <textarea
+                  name="notas"
+                  rows={3}
+                  placeholder="Se muestran en la cotización"
+                  className="rounded-lg border border-border px-3 py-2 text-sm resize-none"
+                />
+              </label>
+
               <button className="w-full rounded-lg bg-brand-blue-600 hover:bg-brand-blue-700 text-white text-sm font-medium py-2.5 mt-2">
                 Generar cotización
               </button>

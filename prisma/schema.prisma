@@ -369,6 +369,8 @@ model Cotizacion {
   costoPermiso      Float    @default(0)
   ivaPorcentaje     Float    @default(0) // 0 = no se cobra IVA en esta cotización
 
+  notas             String? // comentarios manuales, se muestran en la cotización/PDF
+
   estatus           String   @default("Pendiente") // Pendiente | Aceptada | Rechazada
 
   shipmentId        String?  @unique
