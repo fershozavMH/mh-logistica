@@ -51,6 +51,12 @@ export default async function CotizacionPage({ params }: { params: Promise<{ id:
                   </form>
                 </>
               )}
+              <Link
+                href={`/cotizaciones/${c.id}/editar`}
+                className="rounded-lg border border-border text-sm px-4 py-2 text-ink-secondary hover:bg-gray-50"
+              >
+                Editar
+              </Link>
               <form action={eliminarCotizacion.bind(null, c.id)}>
                 <ConfirmSubmitButton
                   confirmText={`¿Eliminar la cotización ${c.folio}? Esto no se puede deshacer.`}

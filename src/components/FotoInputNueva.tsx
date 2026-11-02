@@ -32,9 +32,11 @@ function comprimirImagen(file: File): Promise<string> {
 // Igual que FotoEquipo, pero para un registro que AÚN NO existe (no hay id
 // al que guardarle la foto de inmediato) — en vez de subirla sola, la deja
 // lista en un input oculto para que se mande junto con el resto del
-// formulario cuando se le dé "Guardar"/"Generar".
-export default function FotoInputNueva({ name = "fotoUrl" }: { name?: string }) {
-  const [preview, setPreview] = useState<string | null>(null);
+// formulario cuando se le dé "Guardar"/"Generar". Con defaultUrl también
+// sirve para editar un registro que ya tiene foto: si no se elige una
+// nueva, se manda la misma de siempre.
+export default function FotoInputNueva({ name = "fotoUrl", defaultUrl }: { name?: string; defaultUrl?: string | null }) {
+  const [preview, setPreview] = useState<string | null>(defaultUrl ?? null);
   const [error, setError] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
