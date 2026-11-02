@@ -1007,6 +1007,31 @@ export async function crearCotizacion(formData: FormData) {
   redirect(`/cotizaciones/${cotizacion.id}`);
 }
 
+export async function editarCotizacion(id: string, formData: FormData) {
+  await requireFullAccess();
+  await prisma.cotizacion.update({
+    where: { id },
+    data: {
+      cliente: str(formData, "cliente") ?? "Sin cliente",
+      tipoMaquina: str(formData, "tipoMaquina") ?? "Equipo",
+      anio: str(formData, "anio") ?? null,
+      origenCiudad: str(formData, "origenCiudad") ?? null,
+      destinoCiudad: str(formData, "destinoCiudad") ?? null,
+      fotoUrl: str(formData, "fotoUrl") ?? null,
+      vendedor: str(formData, "vendedor") ?? null,
+      costoFleteUSA: num(formData, "costoFleteUSA"),
+      costoImportacion: num(formData, "costoImportacion"),
+      costoManiobras: num(formData, "costoManiobras"),
+      costoFleteMx: num(formData, "costoFleteMx"),
+      costoPermiso: num(formData, "costoPermiso"),
+      ivaPorcentaje: num(formData, "ivaPorcentaje"),
+    },
+  });
+  revalidatePath("/cotizaciones");
+  revalidatePath(`/cotizaciones/${id}`);
+  redirect(`/cotizaciones/${id}`);
+}
+
 export async function eliminarCotizacion(id: string) {
   await requireFullAccess();
   await prisma.cotizacion.delete({ where: { id } });
