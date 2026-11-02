@@ -29,7 +29,7 @@ export default async function EditarCotizacionPage({ params }: { params: Promise
       <main className="max-w-xl mx-auto my-8 px-4">
         <Card>
           <CardHeader title={`Editar cotización ${c.folio}`} subtitle="Los cambios se ven reflejados en el PDF al guardar" />
-          <form action={editarCotizacion.bind(null, c.id)} className="p-5 space-y-3">
+          <form action={editarCotizacion.bind(null, c.id)} className="p-5 pb-20 space-y-3">
             <FotoInputNueva defaultUrl={c.fotoUrl} />
 
             <label className="flex flex-col gap-1 text-sm">
@@ -107,7 +107,7 @@ export default async function EditarCotizacionPage({ params }: { params: Promise
               />
             </label>
 
-            <div className="flex items-center gap-2 pt-2">
+            <div className="sticky bottom-0 -mx-5 px-5 py-3 bg-white border-t border-border flex items-center gap-2 shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
               <Link
                 href={`/cotizaciones/${c.id}`}
                 className="flex-1 text-center rounded-lg border border-border text-sm font-medium py-2.5 text-ink-secondary hover:bg-gray-50"
