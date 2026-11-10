@@ -37,6 +37,7 @@ model Shipment {
   cliente           String
   vendedor          String?  // Jaime Zamudio | Raul Favela | Otro
   fotoUrl           String?  // foto del equipo (data URL, ya comprimida) para identificarlo visualmente
+  fotoThumb         String?  // miniatura WebP de 160 px (data URL, ~4 KB), calculada la primera vez que se pide
   tipoVenta         String   @default("Equipo") // Equipo | Servicio Logístico (cliente externo, no es equipo propio de MH)
 
   // Estatus / etapa actual

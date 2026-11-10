@@ -62,33 +62,55 @@ export async function normalizarFoto(dataUrl: string | null | undefined): Promis
   return `data:image/webp;base64,${webp.toString("base64")}`;
 }
 
-// Respuesta HTTP con la foto lista para el navegador. Se usa en las rutas
-// /api/foto/[id] (con sesión) y /publico/foto/[id] (vista pública).
-export async function respuestaFoto(
-  dataUrl: string | null | undefined,
-  tamano: "thumb" | "full",
-  cache: "publica" | "privada" | "corta",
-) {
-  const cacheControl =
-    cache === "publica"
-      ? "public, max-age=31536000, immutable"
-      : cache === "privada"
-        ? "private, max-age=31536000, immutable"
-        : "private, max-age=60";
-  const buf = dataUrl ? decodificarDataUrl(dataUrl) : null;
-  if (!buf || !tipoPorBytes(buf)) {
-    return new Response("Sin foto", {
-      status: 404,
-      headers: { "Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff" },
-    });
-  }
-  const salida = await aWebp(buf, tamano === "thumb" ? ANCHO_THUMB : ANCHO_FULL, tamano === "thumb" ? 70 : 80);
-  return new Response(new Uint8Array(salida), {
+const CACHE_CONTROL = {
+  publica: "public, max-age=31536000, immutable",
+  privada: "private, max-age=31536000, immutable",
+  corta: "private, max-age=60",
+} as const;
+export type CacheFoto = keyof typeof CACHE_CONTROL;
+
+export const sinFoto = () =>
+  new Response("Sin foto", {
+    status: 404,
+    headers: { "Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff" },
+  });
+
+export function respuestaWebp(webp: Buffer, cache: CacheFoto) {
+  return new Response(new Uint8Array(webp), {
     headers: {
       "Content-Type": "image/webp",
-      "Content-Length": String(salida.length),
-      "Cache-Control": cacheControl,
+      "Content-Length": String(webp.length),
+      "Cache-Control": CACHE_CONTROL[cache],
       "X-Content-Type-Options": "nosniff",
     },
   });
+}
+
+// Miniatura WebP de 160 px a partir de la foto guardada (data URL), o null si
+// no es una imagen válida.
+export async function generarMiniatura(dataUrl: string | null | undefined): Promise<Buffer | null> {
+  const buf = dataUrl ? decodificarDataUrl(dataUrl) : null;
+  if (!buf || !tipoPorBytes(buf)) return null;
+  return aWebp(buf, ANCHO_THUMB, 70);
+}
+
+// Respuesta HTTP con la foto lista para el navegador. Se usa en las rutas
+// /api/foto/[id] (con sesión) y /publico/foto/[token] (vista pública).
+export async function respuestaFoto(
+  dataUrl: string | null | undefined,
+  tamano: "thumb" | "full",
+  cache: CacheFoto,
+) {
+  const buf = dataUrl ? decodificarDataUrl(dataUrl) : null;
+  const tipo = buf ? tipoPorBytes(buf) : null;
+  if (!buf || !tipo) return sinFoto();
+
+  // Las fotos guardadas ya salen en WebP de máximo 1200 px (normalizarFoto):
+  // se mandan tal cual, sin volver a procesarlas en cada petición.
+  if (tamano === "full" && tipo === "webp") {
+    const meta = await sharp(buf, { limitInputPixels: LIMITE_PIXELES }).metadata();
+    if ((meta.width ?? Infinity) <= ANCHO_FULL) return respuestaWebp(buf, cache);
+  }
+  const salida = await aWebp(buf, tamano === "thumb" ? ANCHO_THUMB : ANCHO_FULL, tamano === "thumb" ? 70 : 80);
+  return respuestaWebp(salida, cache);
 }

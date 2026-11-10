@@ -106,6 +106,8 @@ export async function POST(req: NextRequest) {
     fechaSalidaProgramada: d.fechaSalidaProgramada,
     millas: d.millas,
     fotoUrl: fotoNormalizada,
+    // si el ERP manda otra foto, la miniatura guardada ya no sirve
+    ...(fotoNormalizada !== undefined ? { fotoThumb: null } : {}),
   };
 
   try {

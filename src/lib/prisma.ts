@@ -13,7 +13,7 @@ const crearCliente = () =>
   new PrismaClient({
     adapter,
     omit: {
-      shipment: { fotoUrl: true },
+      shipment: { fotoUrl: true, fotoThumb: true },
       cotizacion: { fotoUrl: true },
       documento: { archivoUrl: true },
     },

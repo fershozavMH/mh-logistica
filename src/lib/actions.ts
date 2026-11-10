@@ -373,7 +373,7 @@ export async function guardarFotoEquipo(shipmentId: string, dataUrl: string): Pr
   const fotoUrl = await normalizarFoto(dataUrl);
   await prisma.shipment.update({
     where: { id: shipmentId },
-    data: { fotoUrl },
+    data: { fotoUrl, fotoThumb: null },
   });
   sincronizarUnidadDespues(shipmentId);
   revalidatePath(`/embarques/${shipmentId}`);
@@ -386,7 +386,7 @@ export async function quitarFotoEquipo(shipmentId: string): Promise<void> {
   await requireFullAccess();
   await prisma.shipment.update({
     where: { id: shipmentId },
-    data: { fotoUrl: null },
+    data: { fotoUrl: null, fotoThumb: null },
   });
   revalidatePath(`/embarques/${shipmentId}`);
   revalidatePath("/operaciones");
