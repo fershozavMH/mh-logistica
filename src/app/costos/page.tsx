@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import { Card, CardHeader, EmptyState, StatCard, SerieTag, MoneyInput } from "@/components/ui";
@@ -319,10 +320,10 @@ export default async function CostosPage({
                 />
               </div>
               <input name="notas" placeholder="Notas para administración (opcional)" className="w-full rounded-lg border border-border px-3 py-2 text-sm" />
-              <button className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-orange-500 hover:bg-brand-orange-600 text-white text-sm font-medium py-2.5">
+              <SubmitButton pendingText="Generando orden…" className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-orange-500 hover:bg-brand-orange-600 text-white text-sm font-medium py-2.5">
                 <Printer size={16} />
                 Generar e imprimir orden de pago
-              </button>
+              </SubmitButton>
             </form>
           </Card>
         )}

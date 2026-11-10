@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import FotoMini from "@/components/FotoMini";
 import { fotoSrc } from "@/lib/foto-url";
 import { notFound } from "next/navigation";
@@ -61,9 +62,9 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
           )}
           {!soloLectura && !order.erpEnviado && order.estatusPago === "Pendiente" && (
             <form action={reintentarEnvioERP.bind(null, order.id)}>
-              <button className="rounded-lg border border-border text-sm px-4 py-2 hover:bg-surface-muted">
+              <SubmitButton pendingText="Enviando al ERP…" className="rounded-lg border border-border text-sm px-4 py-2 hover:bg-surface-muted">
                 Reintentar envío a ERP
-              </button>
+              </SubmitButton>
             </form>
           )}
           {!soloLectura && order.estatusPago === "Pendiente" && (

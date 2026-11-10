@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import { Lock } from "lucide-react";
 import { loginAction } from "@/lib/auth-actions";
 
@@ -33,9 +34,9 @@ export default async function LoginPage({
             />
           </div>
           {error && <p className="text-sm text-red-600">Clave incorrecta. Intenta de nuevo.</p>}
-          <button className="w-full rounded-lg bg-brand-navy text-white text-sm font-medium px-4 py-2.5 hover:opacity-90">
+          <SubmitButton pendingText="Entrando…" className="w-full rounded-lg bg-brand-navy text-white text-sm font-medium px-4 py-2.5 hover:opacity-90">
             Entrar
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>

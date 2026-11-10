@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import { Card, CardHeader, EmptyState, Pill, SerieTag, ClockBadge, StatCard, StatusBadge } from "@/components/ui";
@@ -132,9 +133,9 @@ export default async function VentasPage({
                   ))}
                 </div>
 
-                <button className="w-full rounded-lg bg-brand-blue-600 hover:bg-brand-blue-700 text-white text-sm font-medium py-2.5 mt-2">
+                <SubmitButton className="w-full rounded-lg bg-brand-blue-600 hover:bg-brand-blue-700 text-white text-sm font-medium py-2.5 mt-2">
                   Registrar venta de servicio
-                </button>
+                </SubmitButton>
                 <p className="text-xs text-ink-muted">
                   Se agrega automáticamente a Operaciones para darle seguimiento de estatus.
                 </p>
@@ -260,9 +261,9 @@ export default async function VentasPage({
                 <input type="checkbox" name="fleteMex" defaultChecked />
                 <span className="text-ink-secondary">Incluye flete México</span>
               </label>
-              <button className="w-full rounded-lg bg-brand-blue-600 hover:bg-brand-blue-700 text-white text-sm font-medium py-2.5">
+              <SubmitButton className="w-full rounded-lg bg-brand-blue-600 hover:bg-brand-blue-700 text-white text-sm font-medium py-2.5">
                 Guardar venta
-              </button>
+              </SubmitButton>
             </form>
           </Card>
           )}

@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import FotoMini from "@/components/FotoMini";
 import { fotoSrc } from "@/lib/foto-url";
 import Link from "next/link";
@@ -71,10 +72,10 @@ export default async function DashboardPage() {
                 <option value="Jaime Zamudio">Jaime Zamudio</option>
                 <option value="Raúl Favela">Raúl Favela</option>
               </select>
-              <button className="rounded-lg bg-brand-navy text-white text-sm font-medium px-4 py-2 hover:opacity-90 flex items-center justify-center gap-1.5">
+              <SubmitButton className="rounded-lg bg-brand-navy text-white text-sm font-medium px-4 py-2 hover:opacity-90 flex items-center justify-center gap-1.5">
                 <CalendarClock size={14} />
                 Agregar
-              </button>
+              </SubmitButton>
             </form>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
@@ -98,7 +99,7 @@ export default async function DashboardPage() {
                         </div>
                         {!soloLectura && item.tipo === "manual" && (
                           <form action={resolveComment.bind(null, item.id)}>
-                            <button className="text-xs text-ink-muted hover:text-brand-blue-700 shrink-0">Listo</button>
+                            <SubmitButton className="text-xs text-ink-muted hover:text-brand-blue-700 shrink-0">Listo</SubmitButton>
                           </form>
                         )}
                       </li>
@@ -147,7 +148,7 @@ export default async function DashboardPage() {
                     </span>
                     {!soloLectura && (
                       <form action={resolveComment.bind(null, r.id)}>
-                        <button className="text-xs text-brand-orange-700 hover:underline shrink-0">Listo</button>
+                        <SubmitButton className="text-xs text-brand-orange-700 hover:underline shrink-0">Listo</SubmitButton>
                       </form>
                     )}
                   </div>
@@ -355,9 +356,9 @@ export default async function DashboardPage() {
                   placeholder="Tu nombre"
                   className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                 />
-                <button className="w-full rounded-lg bg-brand-navy text-white text-sm font-medium py-2 hover:opacity-90">
+                <SubmitButton pendingText="Guardando…" className="w-full rounded-lg bg-brand-navy text-white text-sm font-medium py-2 hover:opacity-90">
                   Guardar recordatorio
-                </button>
+                </SubmitButton>
               </form>
             </Card>
           )}
@@ -416,7 +417,7 @@ export default async function DashboardPage() {
                     </div>
                     {!soloLectura && (
                       <form action={resolveComment.bind(null, c.id)}>
-                        <button className="text-xs text-brand-blue-700 hover:underline shrink-0">Resolver</button>
+                        <SubmitButton className="text-xs text-brand-blue-700 hover:underline shrink-0">Resolver</SubmitButton>
                       </form>
                     )}
                   </li>

@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import Link from "next/link";
 import { FileText, Clock, CheckCircle2 } from "lucide-react";
 import TopBar from "@/components/TopBar";
@@ -140,9 +141,9 @@ export default async function CotizacionesPage({
                 />
               </label>
 
-              <button className="w-full rounded-lg bg-brand-blue-600 hover:bg-brand-blue-700 text-white text-sm font-medium py-2.5 mt-2">
+              <SubmitButton className="w-full rounded-lg bg-brand-blue-600 hover:bg-brand-blue-700 text-white text-sm font-medium py-2.5 mt-2">
                 Generar cotización
-              </button>
+              </SubmitButton>
             </form>
           </Card>
           )}
@@ -177,10 +178,10 @@ export default async function CotizacionesPage({
                           {c.estatus === "Pendiente" && (
                             <>
                               <form action={aceptarCotizacion.bind(null, c.id)}>
-                                <button className="text-xs text-green-700 hover:underline">Aceptada</button>
+                                <SubmitButton className="text-xs text-green-700 hover:underline">Aceptada</SubmitButton>
                               </form>
                               <form action={rechazarCotizacion.bind(null, c.id)}>
-                                <button className="text-xs text-ink-muted hover:text-red-600 hover:underline">Rechazada</button>
+                                <SubmitButton className="text-xs text-ink-muted hover:text-red-600 hover:underline">Rechazada</SubmitButton>
                               </form>
                             </>
                           )}

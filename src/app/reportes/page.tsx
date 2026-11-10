@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import FotoMini from "@/components/FotoMini";
 import { fotoSrc } from "@/lib/foto-url";
 import Link from "next/link";
@@ -480,9 +481,9 @@ export default async function ReportesPage({
                 </option>
               ))}
             </select>
-            <button className="rounded-lg bg-brand-navy text-white text-sm font-medium px-4 py-2 hover:opacity-90">
+            <SubmitButton className="rounded-lg bg-brand-navy text-white text-sm font-medium px-4 py-2 hover:opacity-90">
               Ver
-            </button>
+            </SubmitButton>
           </form>
         )}
 
@@ -500,9 +501,9 @@ export default async function ReportesPage({
                 </option>
               ))}
             </select>
-            <button className="rounded-lg bg-brand-navy text-white text-sm font-medium px-4 py-2 hover:opacity-90">
+            <SubmitButton className="rounded-lg bg-brand-navy text-white text-sm font-medium px-4 py-2 hover:opacity-90">
               Ver
-            </button>
+            </SubmitButton>
           </form>
         )}
 
@@ -643,9 +644,9 @@ export default async function ReportesPage({
                                       defaultValue={c.texto}
                                       className="flex-1 min-w-0 text-xs text-ink-secondary bg-surface-muted rounded-lg px-2.5 py-1.5 border-0 focus:outline-none focus:ring-1 focus:ring-brand-blue-400"
                                     />
-                                    <button className="no-print text-xs text-brand-blue-700 font-medium shrink-0 hover:underline">
+                                    <SubmitButton className="no-print text-xs text-brand-blue-700 font-medium shrink-0 hover:underline">
                                       Guardar
-                                    </button>
+                                    </SubmitButton>
                                   </form>
                                   <form action={deleteComment.bind(null, c.id)} className="no-print shrink-0">
                                     <ConfirmSubmitButton
@@ -673,9 +674,9 @@ export default async function ReportesPage({
                                 placeholder="Comentario de hoy sobre esta unidad..."
                                 className="flex-1 rounded-lg border border-border px-2.5 py-1.5 text-xs"
                               />
-                              <button className="text-xs text-brand-blue-700 font-medium shrink-0 hover:underline">
+                              <SubmitButton className="text-xs text-brand-blue-700 font-medium shrink-0 hover:underline">
                                 Agregar
-                              </button>
+                              </SubmitButton>
                             </form>
                           ) : (
                             <p className="no-print text-xs text-ink-muted italic">

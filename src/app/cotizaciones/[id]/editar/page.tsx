@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -114,9 +115,9 @@ export default async function EditarCotizacionPage({ params }: { params: Promise
               >
                 Cancelar
               </Link>
-              <button className="flex-1 rounded-lg bg-brand-blue-600 hover:bg-brand-blue-700 text-white text-sm font-medium py-2.5">
+              <SubmitButton pendingText="Guardando…" className="flex-1 rounded-lg bg-brand-blue-600 hover:bg-brand-blue-700 text-white text-sm font-medium py-2.5">
                 Guardar cambios
-              </button>
+              </SubmitButton>
             </div>
           </form>
         </Card>

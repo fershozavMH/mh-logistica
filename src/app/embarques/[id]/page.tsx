@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import FotoMini from "@/components/FotoMini";
 import { fotoSrc } from "@/lib/foto-url";
 import Link from "next/link";
@@ -165,7 +166,7 @@ export default async function EmbarqueDetallePage({ params }: { params: Promise<
             <form action={updateShipmentEstatusForm.bind(null, shipment.id)} className="p-5 space-y-4">
               <div className="flex flex-wrap gap-2">
                 {ESTATUS_FLOW.map((e) => (
-                  <button
+                  <SubmitButton
                     key={e.key}
                     type="submit"
                     name="estatus"
@@ -177,7 +178,7 @@ export default async function EmbarqueDetallePage({ params }: { params: Promise<
                     }`}
                   >
                     {e.label}
-                  </button>
+                  </SubmitButton>
                 ))}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -345,9 +346,9 @@ export default async function EmbarqueDetallePage({ params }: { params: Promise<
                 <textarea name="incidencias" defaultValue={shipment.incidencias ?? ""} className="rounded-lg border border-border px-3 py-2 text-sm min-h-16" />
               </label>
               <div className="sm:col-span-2 flex justify-end">
-                <button className="rounded-lg bg-gray-900 text-white text-sm font-medium px-4 py-2 hover:opacity-90">
+                <SubmitButton pendingText="Guardando…" className="rounded-lg bg-gray-900 text-white text-sm font-medium px-4 py-2 hover:opacity-90">
                   Guardar cambios
-                </button>
+                </SubmitButton>
               </div>
             </form>
             )}
@@ -558,9 +559,9 @@ export default async function EmbarqueDetallePage({ params }: { params: Promise<
                   </div>
                 )}
                 <div className="flex justify-end">
-                  <button className="rounded-lg bg-gray-900 text-white text-sm font-medium px-4 py-2 hover:opacity-90">
+                  <SubmitButton pendingText="Guardando…" className="rounded-lg bg-gray-900 text-white text-sm font-medium px-4 py-2 hover:opacity-90">
                     Guardar costos
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             </Card>
@@ -675,9 +676,9 @@ export default async function EmbarqueDetallePage({ params }: { params: Promise<
                           </span>
                           {o.estatusPago === "Pendiente" && (
                             <form action={cancelarOrdenDePago.bind(null, o.id)}>
-                              <button className="text-xs text-gray-400 hover:text-red-600" title="Cancelar orden (se confirma con el ERP)">
+                              <SubmitButton className="text-xs text-gray-400 hover:text-red-600" title="Cancelar orden (se confirma con el ERP)">
                                 Cancelar
-                              </button>
+                              </SubmitButton>
                             </form>
                           )}
                           {o.estatusPago === "Cancelada" && (
@@ -721,7 +722,7 @@ export default async function EmbarqueDetallePage({ params }: { params: Promise<
                 <textarea name="texto" required placeholder="Escribe un comentario…" className="w-full rounded-lg border border-border px-3 py-2 text-sm min-h-16" />
                 <div className="flex gap-3">
                   <input name="autor" placeholder="Tu nombre" className="flex-1 rounded-lg border border-border px-3 py-2 text-sm" />
-                  <button className="rounded-lg bg-gray-900 text-white text-sm font-medium px-4 py-2">Agregar</button>
+                  <SubmitButton className="rounded-lg bg-gray-900 text-white text-sm font-medium px-4 py-2">Agregar</SubmitButton>
                 </div>
               </form>
             )}
@@ -739,7 +740,7 @@ export default async function EmbarqueDetallePage({ params }: { params: Promise<
                     </div>
                     {!soloLectura && !c.resuelto && c.tipo === "recordatorio" && (
                       <form action={resolveComment.bind(null, c.id)}>
-                        <button className="text-xs text-brand-blue-700 hover:underline shrink-0">Resolver</button>
+                        <SubmitButton className="text-xs text-brand-blue-700 hover:underline shrink-0">Resolver</SubmitButton>
                       </form>
                     )}
                   </li>

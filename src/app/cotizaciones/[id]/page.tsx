@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/SubmitButton";
 import { cotizacionFotoSrc } from "@/lib/foto-url";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -41,14 +42,14 @@ export default async function CotizacionPage({ params }: { params: Promise<{ id:
               {c.estatus === "Pendiente" && (
                 <>
                   <form action={rechazarCotizacion.bind(null, c.id)}>
-                    <button className="rounded-lg border border-border text-sm px-4 py-2 text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200">
+                    <SubmitButton className="rounded-lg border border-border text-sm px-4 py-2 text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200">
                       Marcar rechazada
-                    </button>
+                    </SubmitButton>
                   </form>
                   <form action={aceptarCotizacion.bind(null, c.id)}>
-                    <button className="rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2">
+                    <SubmitButton className="rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2">
                       Cliente aceptó — pasar a venta
-                    </button>
+                    </SubmitButton>
                   </form>
                 </>
               )}

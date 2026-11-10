@@ -1,5 +1,8 @@
 "use client";
 
+import { useFormStatus } from "react-dom";
+import { Loader2 } from "lucide-react";
+
 const CAMPOS_COSTO = ["costoFleteUSA", "costoImportacion", "costoBondCanada", "costoManiobras", "costoFleteMx", "costoPermiso", "costoSeguro", "costoPlacas", "costoRepuveTitulo"];
 
 // Botón de "Generar orden de pago": si los conceptos de costo están en
@@ -12,10 +15,13 @@ export default function ConfirmZeroCostButton({
   className?: string;
   children: React.ReactNode;
 }) {
+  const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      className={className}
+      disabled={pending}
+      aria-busy={pending || undefined}
+      className={`${className ?? ""} disabled:opacity-60 disabled:cursor-wait`}
       onClick={(e) => {
         const form = e.currentTarget.closest("form");
         if (!form) return;
@@ -40,7 +46,8 @@ export default function ConfirmZeroCostButton({
         }
       }}
     >
-      {children}
+      {pending && <Loader2 size={16} className="animate-spin" aria-hidden />}
+      {pending ? "Generando orden…" : children}
     </button>
   );
 }
