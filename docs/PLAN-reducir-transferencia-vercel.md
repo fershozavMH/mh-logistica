@@ -64,3 +64,80 @@ Picos: ~4.9 GB (23-oct) y ~2.6 GB (5-nov).
 - Las fotos están en data URL: la ruta debe validar el prefijo `data:image/` y fallar
   con 404 si no existe, sin romper la UI.
 - No hacer deploy de esto a master sin probar `/publico/*` (se comparte con Ventas).
+
+---
+
+# Bloque B. Login real (usuarios individuales)
+
+## Situación actual (código en develop)
+- No hay cuentas: hay **una clave compartida** (`APP_PASSWORD` = acceso completo,
+  `APP_PASSWORD_VIEW` = solo lectura). `loginAction` guarda la cookie `mh_auth`
+  firmada con el rol (`full`/`view`), válida **180 días**, sin saber quién es.
+- Consecuencias: cualquiera con la clave es "la misma cuenta"; no se puede cerrar la
+  sesión de una persona sin cambiar la clave de todos; la auditoría (`audit.ts`) no
+  puede atribuir acciones a un usuario real; y quien abre la app en el mismo navegador/
+  dispositivo donde ya hay sesión entra directo con esa cuenta.
+- Nota: la sesión va en cookie `httpOnly`, no en el link; compartir la URL sola no pasa
+  la sesión. Lo que hay que confirmar con Fernando es el caso exacto (mismo navegador,
+  pantalla compartida, o una ruta `/publico/*` que muestra de más).
+
+## Cambios
+1. **Tabla `User`** en Prisma: id, nombre, email, `passwordHash` (argon2 o bcrypt),
+   rol (`admin` | `logistica` | `lectura`), activo, creado/último acceso.
+   Seed con Jaime, Raúl y Dirección. Eliminar el uso de `APP_PASSWORD*` al terminar.
+2. **Tabla `Session`**: token aleatorio guardado como hash, usuario, expira, IP/agente.
+   Cookie `httpOnly; secure; sameSite=lax` con solo el token (no el rol). Duración
+   corta (8-12 h) con renovación; botón "Cerrar sesión en todos los dispositivos".
+3. **Login con correo + contraseña**, límite de intentos por IP/usuario y bloqueo
+   temporal, mensajes genéricos ("credenciales incorrectas").
+4. **Reemplazar `rolDesdeCookie`/`getAuthRole`** por la lectura de sesión en BD;
+   `proxy.ts` solo verifica que exista cookie y la validación real va en el servidor.
+5. **Atribución**: `audit.ts` y los eventos de estatus guardan el `userId` real.
+6. **Rutas públicas**: `/publico/unidad/[folio]` usa un **token largo e imposible de
+   adivinar** por unidad (no el folio), revocable, y nunca lee la cookie ni muestra
+   costos, proveedores ni comentarios. `/publico/operacion` pasa a requerir token.
+7. **Compartir links internos**: los links a pantallas internas siempre piden login;
+   `next=` solo acepta rutas internas (ya se valida).
+8. Opcional después: login con Google Workspace de MH (OAuth) en lugar de contraseña.
+
+## Riesgos
+- Migración: dar de alta usuarios antes de apagar la clave compartida, y coordinar con
+  Jaime, Raúl y Dirección. Mantener la clave vieja solo un par de días como respaldo.
+- Cambiar `AUTH_SECRET` cierra todas las sesiones actuales (es lo esperado).
+
+---
+
+# Bloque C. Pantallas de carga y avisos de "procesando"
+
+## Problema
+No hay `loading.tsx` en ninguna ruta, y solo 5 componentes usan `useTransition`/estado
+pendiente. Al guardar, generar orden de pago o importar, el usuario no ve nada y vuelve
+a hacer clic (acciones duplicadas, órdenes dobles).
+
+## Cambios
+1. **`loading.tsx`** con esqueletos en `/`, `/operaciones`, `/costos`, `/reportes`,
+   `/embarques/[id]`, `/cotizaciones`, `/ventas`, `/analitica`.
+2. **Barra de progreso superior** en navegación entre páginas (indicador global).
+3. **Botón de envío reutilizable** `<SubmitButton>` con `useFormStatus`: deshabilitado
+   mientras corre, con spinner y texto ("Guardando...", "Generando orden...").
+   Reemplazar los `<button>` de formularios con server actions en todas las pantallas.
+4. **Candado anti-doble clic** en acciones críticas (orden de pago, importar Excel,
+   sincronizar con ERP, subir foto/documento): ignorar un segundo envío en curso.
+5. **Avisos (toast)** al terminar: éxito o error con mensaje claro, para que el usuario
+   sepa que terminó y no repita.
+6. **Operaciones largas** (importar Excel, sync ERP): overlay con mensaje "Procesando,
+   no cierres esta ventana" y resultado final.
+7. **Confirmaciones** en acciones destructivas (ya existe `ConfirmSubmitButton`;
+   unificarlo con el nuevo botón).
+
+## Verificación
+- Probar cada acción con red lenta (throttling de DevTools) y confirmar que el botón
+  queda bloqueado y se ve el aviso; verificar que no se crean registros duplicados.
+
+---
+
+# Orden sugerido de ejecución
+1. Bloque A pasos 1-3 (baja el consumo de Vercel; lo urgente).
+2. Bloque C (rápido, mejora inmediata de uso, sin migración de datos).
+3. Bloque B (login real; requiere migración de BD y coordinar usuarios).
+4. Bloque A pasos 4-5 y medición.
