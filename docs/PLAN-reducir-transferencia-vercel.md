@@ -237,7 +237,7 @@ ya con las correcciones de consumo.
    - `APP_PASSWORD`, `APP_PASSWORD_VIEW` → **valores nuevos**
    - `AUTH_SECRET` → **nuevo**, 32+ caracteres aleatorios
    - `MH_LOGISTICA_TOKEN` (el que usa el ERP para llamar a esta app)
-   - `ERP_API_SECRET` y la URL del ERP que use `erp-client.ts`
+   - `ERP_URL`, `ERP_API_KEY`, `ERP_API_SECRET`
 5. Antes del primer deploy: respaldo de Neon (branch) y correr la migración de fotos.
 6. Deploy, pruebas de la lista de "Pruebas antes de pasar a master".
 7. **Avisar a Rubén la nueva URL** para que el ERP apunte a `/api/erp/*` del proyecto nuevo.
