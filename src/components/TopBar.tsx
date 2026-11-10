@@ -28,7 +28,7 @@ export default async function TopBar({
         {showBack && <BackButton />}
         <div className="min-w-0">
           <h1 className="text-lg font-semibold text-ink-primary leading-tight truncate">{title}</h1>
-          <p className="text-xs text-ink-muted capitalize truncate">{subtitle ?? hoy}</p>
+          <p className={`text-xs text-ink-muted truncate ${subtitle ? "" : "capitalize"}`}>{subtitle ?? hoy}</p>
         </div>
       </div>
       <div className="flex items-center gap-3">

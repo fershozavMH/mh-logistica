@@ -70,7 +70,7 @@ export default async function UsuariosPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <TopBar title="Usuarios" subtitle="accesos y roles" />
+      <TopBar title="Usuarios" subtitle="Accesos y roles" />
       <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
         {error && <p className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{ERRORES[error] ?? "No se pudo guardar."}</p>}
 

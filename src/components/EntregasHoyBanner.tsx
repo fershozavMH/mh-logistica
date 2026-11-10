@@ -11,6 +11,7 @@ export interface EntregaHoy {
     equipoDescripcion: string;
     cliente: string;
     serie: string;
+    tokenPublico: string;
     updatedAt: Date | string;
   };
 }
@@ -31,7 +32,7 @@ export default function EntregasHoyBanner({
   hrefFor: (shipment: EntregaHoy["shipment"]) => string;
   publico?: boolean;
 }) {
-  const fotoSrcDe = publico ? fotoPublicaSrc : fotoSrc;
+  const fotoSrcDe = publico ? fotoPublicaSrc : fotoSrc; // ambas aceptan la unidad completa
   if (entregas.length === 0) return null;
 
   return (

@@ -267,12 +267,12 @@ export async function getShipment(id: string) {
   });
 }
 
-// Para la ficha pública de seguimiento por cliente (/publico/unidad/[folio]):
+// Para la ficha pública de seguimiento por cliente (/publico/unidad/[token]):
 // solo los campos que un cliente externo debería ver — nada de costos,
 // proveedores, datos bancarios ni comentarios internos de Logística.
-export async function getShipmentPublicoByFolio(folio: string) {
+export async function getShipmentPublicoByToken(tokenPublico: string) {
   return prisma.shipment.findUnique({
-    where: { folio },
+    where: { tokenPublico },
     select: {
       folio: true,
       equipoDescripcion: true,
@@ -280,7 +280,7 @@ export async function getShipmentPublicoByFolio(folio: string) {
       cliente: true,
       categoria: true,
       estatus: true,
-      id: true,
+      tokenPublico: true,
       updatedAt: true,
       origenCiudad: true,
       aduana: true,

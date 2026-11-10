@@ -9,9 +9,13 @@ export function fotoSrc(s: ConFoto, tamano: "thumb" | "full" = "thumb") {
   return `/api/foto/${encodeURIComponent(s.id)}?t=${tamano}&v=${version(s.updatedAt)}`;
 }
 
-export function fotoPublicaSrc(s: ConFoto, tamano: "thumb" | "full" = "thumb") {
-  return `/publico/foto/${encodeURIComponent(s.id)}?t=${tamano}&v=${version(s.updatedAt)}`;
+// Token del link público de una unidad: 64 caracteres hexadecimales.
+export const tokenPublicoValido = (t: string | undefined): t is string => !!t && /^[0-9a-f]{64}$/.test(t);
+
+export function fotoPublicaSrc(s: { tokenPublico: string; updatedAt: Date | string }, tamano: "thumb" | "full" = "thumb") {
+  return `/publico/foto/${s.tokenPublico}?t=${tamano}&v=${version(s.updatedAt)}`;
 }
+
 
 // Cotizacion no tiene updatedAt: su ruta se cachea poco tiempo (ver route.ts).
 export function cotizacionFotoSrc(c: { id: string }, tamano: "thumb" | "full" = "full") {

@@ -9,9 +9,12 @@ const RUTAS_SOLO_ESCRITURA = ["/embarques/nuevo", "/importar"];
 
 // Rutas sin sesión:
 //   /login, /activar  → para entrar o elegir contraseña
-//   /publico          → vista pública de seguimiento
+//   /publico/unidad, /publico/foto → ficha que se manda al cliente; se abre
+//                       solo con el token aleatorio de esa unidad
 //   /api/erp          → las llama el ERP con su token Bearer (src/lib/erp-auth.ts)
-const SIN_SESION = ["/login", "/activar/", "/publico", "/api/erp"];
+// /publico/operacion SÍ pide sesión (muestra clientes y notas internas): a
+// Ventas se le da un usuario de Solo lectura.
+const SIN_SESION = ["/login", "/activar/", "/publico/unidad/", "/publico/foto/", "/api/erp"];
 
 // Estas rutas validan la sesión por su cuenta (getAuthRole) y responden 401;
 // así cada miniatura no hace dos consultas a la base.

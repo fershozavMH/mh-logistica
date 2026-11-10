@@ -21,6 +21,10 @@ datasource db {
 
 // Un embarque / unidad que se está moviendo de EUA hacia el cliente en México.
 model Shipment {
+  // Token aleatorio para el link público de seguimiento que se manda al
+  // cliente (/publico/unidad/<token>). Antes el link usaba el folio, que es
+  // consecutivo: cualquiera podía recorrer todas las unidades.
+  tokenPublico String @unique @default(dbgenerated("(replace((gen_random_uuid())::text, '-'::text, ''::text) || replace((gen_random_uuid())::text, '-'::text, ''::text))"))
   id                String   @id @default(cuid())
   folio             String   @unique
 

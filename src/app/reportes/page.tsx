@@ -614,7 +614,7 @@ export default async function ReportesPage({
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <CopyLinkButton folio={s.folio} />
+                            <CopyLinkButton tokenPublico={s.tokenPublico} />
                             <StatusBadge estatus={s.estatus} />
                           </div>
                         </div>

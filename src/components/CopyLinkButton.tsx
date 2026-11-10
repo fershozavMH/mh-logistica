@@ -8,11 +8,11 @@ import { Link2, Check } from "lucide-react";
 // equipo por WhatsApp/correo. El link se arma con window.location.origin en
 // el momento del clic (no hace falta guardar la URL del sitio en ningún
 // lado) — por eso es "use client".
-export default function CopyLinkButton({ folio }: { folio: string }) {
+export default function CopyLinkButton({ tokenPublico }: { tokenPublico: string }) {
   const [copiado, setCopiado] = useState(false);
 
   async function copiar() {
-    const url = `${window.location.origin}/publico/unidad/${encodeURIComponent(folio)}`;
+    const url = `${window.location.origin}/publico/unidad/${tokenPublico}`;
     try {
       await navigator.clipboard.writeText(url);
     } catch {

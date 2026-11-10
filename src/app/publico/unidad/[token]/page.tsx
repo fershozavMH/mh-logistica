@@ -1,8 +1,8 @@
 import FotoMini from "@/components/FotoMini";
-import { fotoPublicaSrc } from "@/lib/foto-url";
+import { fotoPublicaSrc, tokenPublicoValido } from "@/lib/foto-url";
 import { Card, CardHeader, EmptyState, StatusBadge, SerieTag, ClockBadge } from "@/components/ui";
 import EstatusTimeline from "@/components/EstatusTimeline";
-import { getShipmentPublicoByFolio } from "@/lib/queries";
+import { getShipmentPublicoByToken } from "@/lib/queries";
 import { formatFecha } from "@/lib/constants";
 import { calcularTimelineEstatus } from "@/lib/ciclo";
 
@@ -10,12 +10,15 @@ export const dynamic = "force-dynamic";
 
 // Ficha pública de seguimiento de UNA unidad, para compartir con el cliente
 // dueño de ese equipo — sin clave de acceso. Solo trae lo que ya selecciona
-// getShipmentPublicoByFolio() (sin costos, proveedores, datos bancarios ni
+// getShipmentPublicoByToken() (sin costos, proveedores, datos bancarios ni
 // comentarios internos de Logística). Sidebar/MobileNav se ocultan solos
 // para cualquier ruta /publico (ver Sidebar.tsx y MobileNav.tsx).
-export default async function UnidadPublicaPage({ params }: { params: Promise<{ folio: string }> }) {
-  const { folio } = await params;
-  const shipment = await getShipmentPublicoByFolio(decodeURIComponent(folio));
+// El link lleva un token aleatorio por unidad (no el folio consecutivo), así
+// que no se puede adivinar el de otra unidad. Los links viejos con folio ya
+// no abren nada.
+export default async function UnidadPublicaPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  const shipment = tokenPublicoValido(token) ? await getShipmentPublicoByToken(token) : null;
 
   return (
     <>
@@ -34,7 +37,7 @@ export default async function UnidadPublicaPage({ params }: { params: Promise<{ 
           {!shipment ? (
             <Card>
               <div className="p-5">
-                <EmptyState text="No se encontró ninguna unidad con ese folio." />
+                <EmptyState text="Este link no es válido. Pide a Machinery Hunters el link actualizado de tu unidad." />
               </div>
             </Card>
           ) : (
