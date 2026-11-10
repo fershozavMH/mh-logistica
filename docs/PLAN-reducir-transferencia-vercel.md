@@ -136,8 +136,87 @@ a hacer clic (acciones duplicadas, órdenes dobles).
 
 ---
 
+# Bloque D. Imágenes: WebP + miniaturas (reemplaza el paso A1 "solo caché")
+
+## Por qué
+- Las listas muestran fotos de 36-64 px pero mandan la foto de 1100 px completa.
+  **La miniatura ahorra más que el formato**: una miniatura WebP de 160 px pesa ~5-10 KB
+  contra 150-400 KB del JPEG actual (o hasta 1.5 MB si vino del ERP).
+- WebP baja otro 25-35% sobre JPEG a la misma calidad.
+- La compresión actual es en el navegador (`FotoEquipo`, canvas a JPEG). No sirve para
+  las fotos que llegan del ERP (`/api/erp/unidades`) y Safari/iPhone no genera WebP desde
+  canvas de forma confiable. Por eso la conversión va **en el servidor**.
+
+## Cambios
+1. Agregar `sharp` (lo usa Next.js para imágenes; corre en funciones de Vercel).
+2. Función `procesarFoto(buffer)` en `src/lib/imagenes.ts`:
+   - valida tipo real por bytes mágicos (JPEG/PNG/WebP/HEIC), no por el `data:` declarado;
+   - `sharp(buf, { limitInputPixels: 40e6 }).rotate()` (corrige orientación del celular
+     y descarta metadatos EXIF/GPS);
+   - genera **dos versiones WebP**: `thumb` 160 px (calidad 70) y `full` 1200 px (calidad 80).
+3. Nueva tabla `Foto` (shipmentId, thumb Bytes, full Bytes, hash, tamaños, creada) en vez
+   del string base64 en `Shipment.fotoUrl`. Lo mismo opcional para documentos de imagen
+   (los PDF se dejan como están, en su tabla y servidos por ruta).
+4. Ruta `/api/foto/[id]?v=<hash>&t=thumb|full` con
+   `Cache-Control: private, max-age=31536000, immutable` (privada porque requiere sesión)
+   y `X-Content-Type-Options: nosniff`. La CDN no la cachea, pero el navegador sí: cada
+   foto viaja una vez por usuario.
+5. Llamar `procesarFoto` en `guardarFotoEquipo`, `FotoInputNueva` y `/api/erp/unidades`.
+6. **Script de migración** `scripts/migrar-fotos.ts` que convierte las fotos existentes y
+   luego vacía `fotoUrl`. Correr primero en una rama de Neon (copia) antes que en prod.
+7. Bajar `serverActions.bodySizeLimit` de 15 MB a 5 MB una vez que las fotos lleguen ya
+   comprimidas desde el navegador (se mantiene la compresión en cliente como primer paso).
+
+## Beneficio extra
+La base es Neon (Postgres). Leer base64 en cada página también gasta transferencia y
+cómputo de Neon; sacar las fotos de las consultas de listas reduce eso igual.
+
+## A futuro
+Si las fotos crecen mucho, moverlas a Vercel Blob o S3 con URL firmada. No es necesario
+ahora: con miniaturas y caché de navegador el consumo queda muy por debajo del límite.
+
+---
+
+# Evaluación de seguridad y rendimiento del plan
+
+## Seguridad (lo que se agrega o se garantiza)
+| Riesgo | Medida |
+|---|---|
+| Sesión sin dueño / clave compartida | Bloque B: usuarios, contraseñas con argon2id, sesiones en BD revocables, 8-12 h |
+| Cookie falsificable (existió hasta 30-oct) | Ya corregido con HMAC; Bloque B lo reemplaza por token aleatorio en BD |
+| Clave compartida pudo circular | **Rotar `APP_PASSWORD`, `APP_PASSWORD_VIEW` y fijar `AUTH_SECRET` propio ya**, antes del Bloque B |
+| Fuerza bruta al login | Límite de intentos por IP y por usuario + regla de rate limit en Firewall de Vercel para `/login` |
+| `/publico/*` abierto y adivinable por folio | Token aleatorio por unidad, revocable; `/publico/operacion` con token o login de lectura |
+| Ruta de fotos expone imágenes | `/api/foto` exige sesión, salvo foto ligada a un token público válido |
+| Archivos maliciosos | Validar bytes mágicos, re-codificar con sharp (elimina contenido extra y EXIF/GPS), `nosniff`, PDF con `Content-Disposition: attachment` |
+| Imágenes gigantes que tumban la función | `limitInputPixels`, límite de body 5 MB, límite ERP 4 MB (ya existe) |
+| Clickjacking / inyección | Headers en `next.config.ts`: `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, CSP básica (`img-src 'self' data:` mientras dure la migración) |
+| Endpoints ERP | Ya usan Bearer en tiempo constante + rate limit; añadir regla de Firewall de Vercel para `/api/erp/*` |
+| Auditoría | `userId` real en bitácora y eventos de estatus |
+
+## Rendimiento (metas medibles)
+| Página | Hoy (estimado) | Meta |
+|---|---|---|
+| `/` y `/operaciones` | varios MB de HTML (fotos base64) | < 150 KB HTML + miniaturas cacheadas |
+| `/reportes/pantalla` | ~288 recargas/día con todas las fotos | `router.refresh` cada 15-30 min, sin fotos en el payload |
+| Fast Origin Transfer | 26.6 GB/30 días | < 1 GB/30 días |
+
+Además: `select` explícito en listas (no traer `documentos`, `incidencias` ni base64), índices
+ya existentes en `estatus` y `shipmentId` son suficientes; revisar `@prisma/client` 6.19 vs
+`@prisma/adapter-neon` 7.10 (versiones distintas: alinear para evitar errores raros).
+
+## Pruebas antes de pasar a master
+- `npm run build` + `npm run lint` sin errores.
+- Medir tamaño de respuesta de `/`, `/operaciones`, `/reportes/pantalla` con `curl -s | wc -c`.
+- Probar en iPhone (Safari) y Android: subir foto, ver miniatura y foto completa.
+- Probar con red lenta: botones bloqueados, sin duplicados.
+- Probar sin sesión: `/`, `/api/foto/*`, `/embarques/*` redirigen a login; `/publico` solo con token.
+
+---
+
 # Orden sugerido de ejecución
-1. Bloque A pasos 1-3 (baja el consumo de Vercel; lo urgente).
+0. Rotar claves compartidas y fijar `AUTH_SECRET` (Jaime, en Vercel; 5 minutos).
+1. Bloque A pasos 2-3 + Bloque D (miniaturas WebP y ruta de fotos): baja el consumo.
 2. Bloque C (rápido, mejora inmediata de uso, sin migración de datos).
 3. Bloque B (login real; requiere migración de BD y coordinar usuarios).
 4. Bloque A pasos 4-5 y medición.
