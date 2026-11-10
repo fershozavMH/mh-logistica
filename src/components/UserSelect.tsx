@@ -1,81 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { USUARIOS } from "@/lib/constants";
+import { createContext, useContext } from "react";
+import { UserRound } from "lucide-react";
 
-const STORAGE_KEY = "mh-usuario-activo";
+// Antes aquí se elegía "quién eres" de una lista guardada en el navegador
+// (cualquiera podía elegir a otra persona). Ahora el nombre sale de la
+// sesión con correo, y el servidor registra ese mismo nombre en la bitácora
+// sin importar lo que mande el formulario.
+const SesionContext = createContext<string | null>(null);
 
-export function useUsuarioActivo() {
-  const [usuario, setUsuario] = useState<string>(USUARIOS[0]);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setUsuario(saved);
-    } catch {
-      // localStorage no disponible; se ignora
-    }
-  }, []);
-
-  const update = (value: string) => {
-    setUsuario(value);
-    try {
-      localStorage.setItem(STORAGE_KEY, value);
-    } catch {
-      // localStorage no disponible; se ignora
-    }
-  };
-
-  return [usuario, update] as const;
+export function SesionProvider({ nombre, children }: { nombre: string | null; children: React.ReactNode }) {
+  return <SesionContext.Provider value={nombre}>{children}</SesionContext.Provider>;
 }
 
-export default function UserSelect({
-  name = "usuario",
-  label,
-  className,
-}: {
-  name?: string;
-  label?: string;
-  className?: string;
-}) {
-  const [usuario, setUsuario] = useUsuarioActivo();
+export const useNombreSesion = () => useContext(SesionContext);
 
+export default function UserSelect({ label, className }: { name?: string; label?: string; className?: string }) {
+  const nombre = useNombreSesion();
   return (
-    <label className={`flex flex-col gap-1 text-sm ${className ?? ""}`}>
+    <div className={`flex flex-col gap-1 text-sm ${className ?? ""}`}>
       {label && <span className="text-ink-secondary">{label}</span>}
-      <select
-        name={name}
-        value={usuario}
-        onChange={(e) => setUsuario(e.target.value)}
-        className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink-primary"
-      >
-        {USUARIOS.map((u) => (
-          <option key={u} value={u}>
-            {u}
-          </option>
-        ))}
-      </select>
-    </label>
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm text-ink-primary">
+        <UserRound size={14} className="text-ink-muted shrink-0" />
+        <span className="truncate">{nombre ?? "—"}</span>
+      </div>
+    </div>
   );
 }
 
 export function TopBarUserBadge() {
-  const [usuario, setUsuario] = useUsuarioActivo();
+  const nombre = useNombreSesion();
+  if (!nombre) return null;
   return (
-    <div className="no-print flex items-center gap-2 rounded-full bg-surface-muted pl-3 pr-1.5 py-1 text-sm text-ink-secondary">
+    <div className="no-print flex items-center gap-2 rounded-full bg-surface-muted px-3 py-1.5 text-sm text-ink-secondary max-w-[14rem]">
       <span className="h-2 w-2 rounded-full bg-brand-orange-500 shrink-0" />
-      <select
-        value={usuario}
-        onChange={(e) => setUsuario(e.target.value)}
-        title="¿Quién eres?"
-        className="bg-transparent text-sm text-ink-secondary focus:outline-none cursor-pointer"
-      >
-        {USUARIOS.map((u) => (
-          <option key={u} value={u}>
-            {u}
-          </option>
-        ))}
-      </select>
+      <span className="truncate">{nombre}</span>
     </div>
   );
 }

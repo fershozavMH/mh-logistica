@@ -410,3 +410,39 @@ model Comment {
   @@index([shipmentId])
   @@index([fechaRecordatorio])
 }
+
+// Usuarios reales con correo y contraseña (antes había una sola clave
+// compartida). rol: "lectura" (solo ver), "operacion" (ver y capturar),
+// "total" (además administra usuarios). No hay envío de correos: el
+// administrador genera un link de activación de un solo uso y lo comparte;
+// la persona elige su contraseña ahí.
+model Usuario {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  nombre           String
+  rol              String    @default("lectura")
+  passwordHash     String?
+  activo           Boolean   @default(true)
+  intentosFallidos Int       @default(0)
+  bloqueadoHasta   DateTime?
+  invitacionHash   String?   @unique
+  invitacionExpira DateTime?
+  ultimoAcceso     DateTime?
+  creadoEn         DateTime  @default(now())
+  sesiones         Sesion[]
+}
+
+// Una sesión por equipo/navegador. La cookie guarda un token aleatorio; aquí
+// solo se guarda su SHA-256, así que ver la tabla no permite entrar. Borrar
+// la fila cierra esa sesión al instante.
+model Sesion {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  expira    DateTime
+  creadaEn  DateTime @default(now())
+  agente    String?
+
+  @@index([usuarioId])
+}

@@ -17,7 +17,7 @@ const NAV = [
 
 export default function MobileNav() {
   const pathname = usePathname();
-  if (pathname === "/login" || pathname.startsWith("/publico") || pathname === "/reportes/pantalla") return null;
+  if (pathname === "/login" || pathname.startsWith("/activar") || pathname.startsWith("/publico") || pathname === "/reportes/pantalla") return null;
 
   return (
     <nav className="no-print md:hidden shrink-0 z-20 bg-brand-navy border-b border-white/10 flex overflow-x-auto">

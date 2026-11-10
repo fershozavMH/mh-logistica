@@ -5,7 +5,7 @@ import { normalizarFoto } from "@/lib/imagenes";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { esSoloLectura, getAuthRole } from "@/lib/auth-server";
+import { esSoloLectura, getSesion } from "@/lib/auth-server";
 import { enviarOrdenAlERP, cancelarOrdenEnERP, sincronizarUnidadERP, sincronizarProveedores } from "@/lib/erp";
 import { registrarAuditoria } from "@/lib/audit";
 import { redondear2 } from "@/lib/validacion";
@@ -21,13 +21,14 @@ async function requireFullAccess() {
   }
 }
 
-// Para la bitácora: la app todavía no tiene usuarios individuales (solo la
-// clave de acceso completo / solo lectura), así que se registra el nombre
-// que se elige en el formulario cuando lo hay, más el tipo de acceso.
-async function usuarioBitacora(nombre?: string | null) {
-  const rol = await getAuthRole();
-  const acceso = rol === "full" ? "acceso completo" : rol === "view" ? "solo lectura" : "sin sesión";
-  return nombre ? `${nombre} (${acceso})` : acceso;
+// Para la bitácora y el historial: el nombre del usuario con sesión (ya no
+// se toma lo que mande el formulario, que se podía elegir a mano).
+async function nombreSesion(): Promise<string> {
+  return (await getSesion())?.nombre ?? "Sistema";
+}
+async function usuarioBitacora() {
+  const s = await getSesion();
+  return s ? `${s.nombre} <${s.email}>` : "sin sesión";
 }
 
 // Las unidades capturadas aquí (no las que mandó el ERP) se mandan al ERP con
@@ -166,7 +167,7 @@ export async function createShipment(formData: FormData) {
     data: {
       shipmentId: shipment.id,
       estatusNuevo: shipment.estatus,
-      usuario: str(formData, "vendedor") ?? "Sistema",
+      usuario: await nombreSesion(),
       comentario: "Unidad dada de alta",
     },
   });
@@ -218,7 +219,7 @@ export async function crearVentaServicio(formData: FormData) {
     data: {
       shipmentId: shipment.id,
       estatusNuevo: shipment.estatus,
-      usuario: str(formData, "vendedor") ?? "Sistema",
+      usuario: await nombreSesion(),
       comentario: "Venta de servicio logístico dada de alta",
     },
   });
@@ -272,7 +273,7 @@ export async function updateShipmentEstatus(
 
 export async function updateShipmentEstatusForm(shipmentId: string, formData: FormData) {
   const nuevoEstatus = str(formData, "estatus");
-  const usuario = str(formData, "usuario") ?? "Sistema";
+  const usuario = await nombreSesion();
   const comentario = str(formData, "comentario");
   const fecha = dateOrNull(formData, "fecha") ?? undefined;
   if (!nuevoEstatus) return;
@@ -296,7 +297,7 @@ export async function agregarStatusEventManual(shipmentId: string, formData: For
       shipmentId,
       estatusNuevo,
       fecha,
-      usuario: str(formData, "usuario") ?? "Sistema",
+      usuario: await nombreSesion(),
       comentario: str(formData, "comentario"),
     },
   });
@@ -503,7 +504,7 @@ async function nextOrderFolio() {
 
 export async function generarOrdenDePago(shipmentId: string, formData: FormData): Promise<void> {
   await requireFullAccess();
-  const generadaPor = str(formData, "generadaPor") ?? "Sin especificar";
+  const generadaPor = await nombreSesion();
   const notas = str(formData, "notas");
   // antes de tocar nada: proveedor y cuenta tienen que salir del catálogo
   const datosBancarios = await datosBancariosDesdeCatalogo(formData);
@@ -653,7 +654,7 @@ export async function generarOrdenDePago(shipmentId: string, formData: FormData)
     accion: "orden.crear",
     entidad: "PaymentOrder",
     entidadId: order.folio,
-    usuario: await usuarioBitacora(generadaPor),
+    usuario: await usuarioBitacora(),
     detalle: `Unidad ${s.folio} · total USD ${total} · proveedor ${datosBancarios.proveedorNombre}`,
   });
 
@@ -857,7 +858,7 @@ export async function generarOrdenDePagoGeneral(formData: FormData): Promise<voi
   const order = await prisma.paymentOrder.create({
     data: {
       folio: await nextOrderFolio(),
-      generadaPor: str(formData, "generadaPor") ?? "Sin especificar",
+      generadaPor: await nombreSesion(),
       notas: str(formData, "notas"),
       costoFleteUSA: 0,
       costoImportacion: 0,
@@ -876,7 +877,7 @@ export async function generarOrdenDePagoGeneral(formData: FormData): Promise<voi
     accion: "orden.crear",
     entidad: "PaymentOrder",
     entidadId: order.folio,
-    usuario: await usuarioBitacora(order.generadaPor),
+    usuario: await usuarioBitacora(),
     detalle: `Orden general · total USD ${total} · proveedor ${datosBancarios.proveedorNombre}`,
   });
 

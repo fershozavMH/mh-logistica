@@ -10,7 +10,11 @@ cp .env.example .env.local   # y llena los valores
 npm run dev
 ```
 
-Las migraciones de la base se aplican con `npx prisma migrate deploy` (el build de Vercel no las corre solo).
+Las migraciones se aplican solas en cada despliegue de Vercel (`vercel-build` → `scripts/migrar.mjs`): Preview contra la base de pruebas y Production contra la real. En local: `npx prisma migrate deploy`.
+
+## Usuarios
+
+Cada persona entra con su correo y contraseña. Roles: Solo lectura, Operación (captura) y Administrador (además administra usuarios en `/usuarios`). No se mandan correos: el administrador genera un link de activación (72 h, un solo uso) y se lo comparte. La primera vez, la cuenta de administrador se activa en `/login` → "Primera vez: activar administrador" con la clave `APP_PASSWORD`.
 
 ## Integración con el ERP
 

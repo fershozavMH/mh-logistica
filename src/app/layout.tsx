@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
-import { esSoloLectura } from "@/lib/auth-server";
+import { getSesion } from "@/lib/auth-server";
+import { SesionProvider } from "@/components/UserSelect";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,18 +22,22 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const soloLectura = await esSoloLectura();
+  const sesion = await getSesion();
+  const soloLectura = sesion?.authRole === "view";
+  const admin = sesion?.rol === "total";
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full flex bg-background text-ink-primary overflow-hidden">
-        <Sidebar soloLectura={soloLectura} />
-        <div className="flex-1 flex flex-col min-w-0 h-full">
-          <MobileNav />
-          {children}
-        </div>
+        <SesionProvider nombre={sesion?.nombre ?? null}>
+          <Sidebar soloLectura={soloLectura} admin={admin} />
+          <div className="flex-1 flex flex-col min-w-0 h-full">
+            <MobileNav />
+            {children}
+          </div>
+        </SesionProvider>
       </body>
     </html>
   );

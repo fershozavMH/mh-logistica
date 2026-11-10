@@ -1,42 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AUTH_COOKIE, rolDesdeCookie } from "@/lib/auth";
+import { AUTH_COOKIE, formatoTokenValido } from "@/lib/auth";
+import { validarToken } from "@/lib/sesion";
 
 // Rutas que son solo para dar de alta/importar datos — no tiene sentido que
 // las vea alguien con acceso de solo lectura (Dirección), así que se bloquean
 // desde aquí en vez de dejar que carguen y truenen al enviar el formulario.
 const RUTAS_SOLO_ESCRITURA = ["/embarques/nuevo", "/importar"];
 
-export function proxy(req: NextRequest) {
+// Rutas sin sesión:
+//   /login, /activar  → para entrar o elegir contraseña
+//   /publico          → vista pública de seguimiento
+//   /api/erp          → las llama el ERP con su token Bearer (src/lib/erp-auth.ts)
+const SIN_SESION = ["/login", "/activar/", "/publico", "/api/erp"];
+
+// Estas rutas validan la sesión por su cuenta (getAuthRole) y responden 401;
+// así cada miniatura no hace dos consultas a la base.
+const VALIDAN_SOLAS = ["/api/foto/", "/api/documento/"];
+
+function aLogin(req: NextRequest) {
+  const url = req.nextUrl.clone();
+  url.pathname = "/login";
+  url.search = "";
+  url.searchParams.set("next", req.nextUrl.pathname);
+  return NextResponse.redirect(url);
+}
+
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (pathname.startsWith("/login")) {
-    return NextResponse.next();
+  if (SIN_SESION.some((r) => pathname.startsWith(r))) return NextResponse.next();
+
+  const token = req.cookies.get(AUTH_COOKIE)?.value;
+  if (!formatoTokenValido(token)) return aLogin(req);
+  if (VALIDAN_SOLAS.some((r) => pathname.startsWith(r))) return NextResponse.next();
+
+  // la sesión se revisa contra la base: si se cerró o el usuario se
+  // desactivó, deja de entrar en ese mismo momento
+  const sesion = await validarToken(token);
+  if (!sesion) {
+    const res = aLogin(req);
+    res.cookies.delete(AUTH_COOKIE);
+    return res;
   }
 
-  // Vista pública de solo lectura (estatus de operación) para compartir con
-  // equipos externos (ej. Ventas) sin que necesiten ninguna clave de acceso.
-  if (pathname.startsWith("/publico")) {
-    return NextResponse.next();
-  }
-
-  // Endpoints para la integración con el ERP — los llama un servidor, no una
-  // persona en el navegador, así que no tienen la cookie de acceso. Cada uno
-  // exige el token Bearer del ERP (ver src/lib/erp-auth.ts).
-  if (pathname.startsWith("/api/erp")) {
-    return NextResponse.next();
-  }
-
-  const rol = rolDesdeCookie(req.cookies.get(AUTH_COOKIE)?.value);
-  if (!rol) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
-  }
-
-  if (rol === "view" && RUTAS_SOLO_ESCRITURA.some((r) => pathname.startsWith(r))) {
+  if (sesion.authRole === "view" && RUTAS_SOLO_ESCRITURA.some((r) => pathname.startsWith(r))) {
     const url = req.nextUrl.clone();
     url.pathname = "/";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 

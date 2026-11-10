@@ -134,8 +134,7 @@ export const ESTATUS_ACTIVOS: EstatusKey[] = [
   "Flete México",
 ];
 
-export const USUARIOS = ["Jaime Zamudio", "Raúl Favela", "Otro"] as const;
-export type Usuario = (typeof USUARIOS)[number];
+// (la lista USUARIOS se quitó: el nombre ahora sale de la sesión con correo)
 
 export const VENDEDORES = [
   "No vendida",

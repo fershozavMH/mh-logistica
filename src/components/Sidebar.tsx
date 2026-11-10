@@ -13,8 +13,7 @@ import {
   Upload,
   Handshake,
   Building2,
-  Eye,
-} from "lucide-react";
+  Eye, Users } from "lucide-react";
 import Globe from "@/components/Globe";
 
 // Cohete con una estela/rayo grande, para que "viaje" por una ruta curva
@@ -79,11 +78,12 @@ const NAV = [
   { href: "/importar", label: "Importar datos", icon: Upload },
 ];
 
-export default function Sidebar({ soloLectura = false }: { soloLectura?: boolean }) {
+export default function Sidebar({ soloLectura = false, admin = false }: { soloLectura?: boolean; admin?: boolean }) {
   const pathname = usePathname();
-  if (pathname === "/login" || pathname.startsWith("/publico") || pathname === "/reportes/pantalla") return null;
+  if (pathname === "/login" || pathname.startsWith("/activar") || pathname.startsWith("/publico") || pathname === "/reportes/pantalla") return null;
 
-  const items = soloLectura ? NAV.filter((item) => item.href !== "/importar") : NAV;
+  const base = soloLectura ? NAV.filter((item) => item.href !== "/importar") : NAV;
+  const items = admin ? [...base, { href: "/usuarios", label: "Usuarios", icon: Users }] : base;
 
   return (
     <aside className="no-print hidden md:flex md:w-64 md:flex-col bg-brand-navy text-white shrink-0">
