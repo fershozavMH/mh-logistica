@@ -9,6 +9,12 @@ import { ESTATUS_FLOW, formatFecha, coincideBusqueda } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
+// El tablero llegó a pesar casi 900 KB porque dibujaba TODAS las unidades,
+// y la columna "Entregado" crece sin parar. Ahora muestra solo las últimas
+// entregadas; las anteriores se ven con "Ver todas" o con el buscador.
+const ENTREGADAS_RECIENTES = 12;
+const MAX_FILTRADAS = 40;
+
 export default async function OperacionesPage({
   searchParams,
 }: {
@@ -16,9 +22,20 @@ export default async function OperacionesPage({
 }) {
   const { estatus: filtro, buscar } = await searchParams;
   const todos = await getShipmentsBoard();
-  const shipments = buscar
+  const coinciden = buscar
     ? todos.filter((s) => coincideBusqueda(buscar, [s.equipoDescripcion, s.cliente, s.serie, s.folio]))
     : todos;
+
+  // Entregadas: las más recientes primero. Sin filtro ni búsqueda solo se
+  // dibujan las últimas; con filtro o búsqueda, hasta MAX_FILTRADAS.
+  const completa = !!filtro || !!buscar;
+  const tope = completa ? MAX_FILTRADAS : ENTREGADAS_RECIENTES;
+  const entregadasTodas = coinciden
+    .filter((s) => s.estatus === "Entregado")
+    .sort((a, b) => (b.fechaEntrega?.getTime() ?? 0) - (a.fechaEntrega?.getTime() ?? 0));
+  const entregadasMostradas = entregadasTodas.slice(0, tope);
+  const entregadasOcultas = entregadasTodas.length - entregadasMostradas.length;
+  const shipments = [...coinciden.filter((s) => s.estatus !== "Entregado"), ...entregadasMostradas];
 
   const columnas = filtro
     ? ESTATUS_FLOW.filter((e) => e.key === filtro)
@@ -40,21 +57,16 @@ export default async function OperacionesPage({
         </div>
         <div className="flex gap-4 h-full min-h-[70vh]">
           {columnas.map((col) => {
-            const items = shipments
-              .filter((s) => s.estatus === col.key)
-              .sort((a, b) => {
-                // En "Entregado" se acomodan por fecha de entrega, la más
-                // reciente arriba. Las demás columnas mantienen su orden.
-                if (col.key === "Entregado") {
-                  return (b.fechaEntrega?.getTime() ?? 0) - (a.fechaEntrega?.getTime() ?? 0);
-                }
-                return 0;
-              });
+            // "Entregado" ya viene ordenada por fecha de entrega (la más
+            // reciente arriba); las demás columnas mantienen su orden.
+            const items = shipments.filter((s) => s.estatus === col.key);
             return (
               <div key={col.key} className="w-72 shrink-0 flex flex-col">
                 <div className={`rounded-t-xl px-4 py-3 ${col.bg}`}>
                   <p className={`text-sm font-semibold ${col.text}`}>{col.label}</p>
-                  <p className={`text-xs ${col.text} opacity-80`}>{items.length} unidad(es)</p>
+                  <p className={`text-xs ${col.text} opacity-80`}>
+                    {col.key === "Entregado" ? entregadasTodas.length : items.length} unidad(es)
+                  </p>
                 </div>
                 <Card className="flex-1 rounded-t-none border-t-0 overflow-y-auto p-2 space-y-2">
                   {items.length === 0 ? (
@@ -104,17 +116,34 @@ export default async function OperacionesPage({
                       </Link>
                     ))
                   )}
+                  {col.key === "Entregado" &&
+                    entregadasOcultas > 0 &&
+                    (completa ? (
+                      <p className="px-3 py-2.5 text-center text-xs text-ink-muted">
+                        Hay {entregadasOcultas} más antiguas; usa el buscador para encontrarlas.
+                      </p>
+                    ) : (
+                      <Link
+                        href="/operaciones?estatus=Entregado"
+                        className="block rounded-lg border border-dashed border-border px-3 py-2.5 text-center text-xs text-brand-blue-700 hover:bg-surface-muted"
+                      >
+                        Ver las {entregadasOcultas} entregadas anteriores
+                      </Link>
+                    ))}
                 </Card>
               </div>
             );
           })}
         </div>
 
-        {/* vista en lista, útil en celular */}
+        {/* vista en lista, útil en celular: sin las entregadas, que ya salen
+            en su columna y harían la página muy larga */}
         <div className="md:hidden mt-8">
-          <p className="text-xs uppercase text-ink-muted mb-2">Lista completa</p>
+          <p className="text-xs uppercase text-ink-muted mb-2">
+            {completa ? "Lista" : "Unidades activas"}
+          </p>
           <Card className="divide-y divide-border">
-            {shipments.map((s) => (
+            {(completa ? shipments : shipments.filter((s) => s.estatus !== "Entregado")).map((s) => (
               <Link key={s.id} href={`/embarques/${s.id}`} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{s.equipoDescripcion}</p>

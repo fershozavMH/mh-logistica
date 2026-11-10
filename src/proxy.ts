@@ -18,7 +18,7 @@ const SIN_SESION = ["/login", "/activar/", "/publico/unidad/", "/publico/foto/",
 
 // Estas rutas validan la sesión por su cuenta (getAuthRole) y responden 401;
 // así cada miniatura no hace dos consultas a la base.
-const VALIDAN_SOLAS = ["/api/foto/", "/api/documento/"];
+const VALIDAN_SOLAS = ["/api/foto/", "/api/documento/", "/api/pantalla/"];
 
 function aLogin(req: NextRequest) {
   const url = req.nextUrl.clone();

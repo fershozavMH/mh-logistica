@@ -245,11 +245,27 @@ export async function getDashboardData() {
   };
 }
 
+// Tablero de /operaciones: solo los campos que pinta cada tarjeta (antes
+// traía las ~80 columnas de cada unidad, con costos y precios, que no se usan).
 export async function getShipmentsBoard() {
-  const shipments = await prisma.shipment.findMany({
+  return prisma.shipment.findMany({
+    select: {
+      id: true,
+      folio: true,
+      estatus: true,
+      equipoDescripcion: true,
+      cliente: true,
+      vendedor: true,
+      serie: true,
+      aduana: true,
+      fechaInicio: true,
+      fechaEntrega: true,
+      fechaSalidaProgramada: true,
+      tiempoCicloDias: true,
+      updatedAt: true,
+    },
     orderBy: [{ estatus: "asc" }, { updatedAt: "desc" }],
   });
-  return shipments;
 }
 
 export async function getShipment(id: string) {

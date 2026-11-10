@@ -3,6 +3,7 @@ import { fotoSrc } from "@/lib/foto-url";
 import { StatusBadge, SerieTag, ClockBadge, EmptyState } from "@/components/ui";
 import EstatusTimeline from "@/components/EstatusTimeline";
 import AutoReload from "@/components/AutoReload";
+import ScrollInfinito from "@/components/ScrollInfinito";
 import { getReporteDiario } from "@/lib/queries";
 import { formatFecha } from "@/lib/constants";
 import { calcularTimelineEstatus } from "@/lib/ciclo";
@@ -14,10 +15,11 @@ export const dynamic = "force-dynamic";
 // Sin menú ni botones (Sidebar/MobileNav se ocultan solos para esta ruta,
 // ver Sidebar.tsx/MobileNav.tsx) — solo la lista de Equipos en operación,
 // desplazándose sola hacia abajo sin parar (técnica: el contenido se dibuja
-// DOS veces seguidas y se anima con translateY de 0% a -50%; como la
-// segunda copia es idéntica a la primera, el "regreso al inicio" no se ve
-// como un salto — es un bucle continuo e imperceptible, puro CSS, nunca se
-// traba). Refresca sus datos cada 10 minutos (ver AutoReload) para no quedarse con datos viejos.
+// DOS veces seguidas (lo hace ScrollInfinito en el navegador) y se anima con
+// translateY de 0% a -50%; como la segunda copia es idéntica a la primera, el
+// "regreso al inicio" no se ve como un salto — es un bucle continuo e
+// imperceptible, puro CSS, nunca se traba). Cada 3 minutos pregunta una huella diminuta (/api/pantalla/version)
+// y solo recarga los datos si algo cambió (ver AutoReload).
 export default async function ReportesPantallaPage() {
   const diario = await getReporteDiario(new Date());
   const unidades = diario.unidadesEnOperacion;
@@ -62,7 +64,7 @@ export default async function ReportesPantallaPage() {
 
   return (
     <div className="h-dvh w-full overflow-hidden bg-surface flex flex-col">
-      <AutoReload ms={10 * 60 * 1000} />
+      <AutoReload ms={3 * 60 * 1000} versionUrl="/api/pantalla/version" />
 
       <header className="flex items-center justify-between px-8 h-20 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
@@ -83,18 +85,11 @@ export default async function ReportesPantallaPage() {
             <EmptyState text="No hay unidades en operación." />
           </div>
         ) : (
-          <div className="mh-scroll-list" style={{ animationDuration: `${duracionSegundos}s` }}>
-            <div>
-              {unidades.map((s) => (
-                <Fila key={s.id} s={s} />
-              ))}
-            </div>
-            <div aria-hidden="true">
-              {unidades.map((s) => (
-                <Fila key={`${s.id}-dup`} s={s} />
-              ))}
-            </div>
-          </div>
+          <ScrollInfinito duracionSegundos={duracionSegundos}>
+            {unidades.map((s) => (
+              <Fila key={s.id} s={s} />
+            ))}
+          </ScrollInfinito>
         )}
       </div>
     </div>
