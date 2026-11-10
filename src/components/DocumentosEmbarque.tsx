@@ -23,7 +23,6 @@ function formatFechaCorta(d: Date | string) {
 export type DocumentoItem = {
   id: string;
   nombre: string;
-  archivoUrl: string;
   tipo: string | null;
   createdAt: Date | string;
 };
@@ -81,7 +80,7 @@ export default function DocumentosEmbarque({
           {documentos.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-2 px-3 py-2">
               <a
-                href={d.archivoUrl}
+                href={`/api/documento/${encodeURIComponent(d.id)}`}
                 download={d.nombre}
                 target="_blank"
                 rel="noreferrer"

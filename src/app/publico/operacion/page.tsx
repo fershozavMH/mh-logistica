@@ -1,3 +1,5 @@
+import FotoMini from "@/components/FotoMini";
+import { fotoPublicaSrc } from "@/lib/foto-url";
 import { Card, CardHeader, EmptyState, StatusBadge, SerieTag, ClockBadge } from "@/components/ui";
 import Buscador from "@/components/Buscador";
 import EstatusTimeline from "@/components/EstatusTimeline";
@@ -44,7 +46,7 @@ export default async function OperacionPublicaPage({
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
-        <EntregasHoyBanner entregas={diario.entregasHoy} hrefFor={(s) => `/publico/unidad/${s.folio}`} />
+        <EntregasHoyBanner entregas={diario.entregasHoy} hrefFor={(s) => `/publico/unidad/${s.folio}`} publico />
 
         <Card>
           <CardHeader
@@ -63,16 +65,7 @@ export default async function OperacionPublicaPage({
                   <li key={s.id} className="px-5 py-3 space-y-2">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        {s.fotoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={s.fotoUrl}
-                            alt=""
-                            className="w-11 h-11 rounded-md object-cover shrink-0 border border-border"
-                          />
-                        ) : (
-                          <div className="w-11 h-11 rounded-md bg-gray-100 shrink-0" />
-                        )}
+                        <FotoMini src={fotoPublicaSrc(s, "thumb")} alt="" className="w-11 h-11 rounded-md object-cover shrink-0 border border-border" fallbackClassName="w-11 h-11 rounded-md bg-gray-100 shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm text-ink-primary flex items-center gap-2 flex-wrap">
                             <span>

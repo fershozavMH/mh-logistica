@@ -1,3 +1,5 @@
+import FotoMini from "@/components/FotoMini";
+import { fotoSrc, fotoPublicaSrc } from "@/lib/foto-url";
 import Link from "next/link";
 import { Trophy } from "lucide-react";
 import { Card, SerieTag } from "@/components/ui";
@@ -9,7 +11,7 @@ export interface EntregaHoy {
     equipoDescripcion: string;
     cliente: string;
     serie: string;
-    fotoUrl: string | null;
+    updatedAt: Date | string;
   };
 }
 
@@ -23,10 +25,13 @@ export interface EntregaHoy {
 export default function EntregasHoyBanner({
   entregas,
   hrefFor,
+  publico = false,
 }: {
   entregas: EntregaHoy[];
   hrefFor: (shipment: EntregaHoy["shipment"]) => string;
+  publico?: boolean;
 }) {
+  const fotoSrcDe = publico ? fotoPublicaSrc : fotoSrc;
   if (entregas.length === 0) return null;
 
   return (
@@ -52,16 +57,7 @@ export default function EntregasHoyBanner({
               href={hrefFor(e.shipment)}
               className="flex items-center gap-3 px-5 py-3 hover:bg-amber-50/60 transition-colors"
             >
-              {e.shipment.fotoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={e.shipment.fotoUrl}
-                  alt=""
-                  className="w-11 h-11 rounded-md object-cover shrink-0 border border-border"
-                />
-              ) : (
-                <div className="w-11 h-11 rounded-md bg-gray-100 shrink-0" />
-              )}
+              <FotoMini src={fotoSrcDe(e.shipment, "thumb")} alt="" className="w-11 h-11 rounded-md object-cover shrink-0 border border-border" fallbackClassName="w-11 h-11 rounded-md bg-gray-100 shrink-0" />
               <div className="min-w-0 flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium text-ink-primary truncate">{e.shipment.equipoDescripcion}</span>
                 <span className="text-xs text-ink-muted">{e.shipment.cliente}</span>

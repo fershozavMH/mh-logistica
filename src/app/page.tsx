@@ -1,3 +1,5 @@
+import FotoMini from "@/components/FotoMini";
+import { fotoSrc } from "@/lib/foto-url";
 import Link from "next/link";
 import { Truck, PackageCheck, Bell, AlertCircle, CheckCircle2, Ship, Landmark, Wrench, Signpost, IdCard } from "lucide-react";
 import TopBar from "@/components/TopBar";
@@ -376,12 +378,7 @@ export default async function DashboardPage() {
                       className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-surface-muted transition-colors"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {s.fotoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={s.fotoUrl} alt="" className="w-9 h-9 rounded-md object-cover shrink-0 border border-border" />
-                        ) : (
-                          <div className="w-9 h-9 rounded-md bg-gray-100 shrink-0" />
-                        )}
+                        <FotoMini src={fotoSrc(s, "thumb")} alt="" className="w-9 h-9 rounded-md object-cover shrink-0 border border-border" fallbackClassName="w-9 h-9 rounded-md bg-gray-100 shrink-0" />
                         <div className="min-w-0">
                         <p className="text-sm font-medium text-ink-primary truncate">{s.equipoDescripcion}</p>
                         <p className="text-xs text-ink-muted truncate flex items-center gap-2 flex-wrap">

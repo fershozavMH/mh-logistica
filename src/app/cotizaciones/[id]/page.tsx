@@ -1,3 +1,4 @@
+import { cotizacionFotoSrc } from "@/lib/foto-url";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -104,7 +105,7 @@ export default async function CotizacionPage({ params }: { params: Promise<{ id:
           {c.fotoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={c.fotoUrl}
+              src={cotizacionFotoSrc(c)}
               alt={c.tipoMaquina}
               className="w-40 h-40 print:w-24 print:h-24 object-cover rounded-lg border border-border shrink-0"
             />

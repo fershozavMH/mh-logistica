@@ -1,3 +1,5 @@
+import FotoMini from "@/components/FotoMini";
+import { fotoPublicaSrc } from "@/lib/foto-url";
 import { Card, CardHeader, EmptyState, StatusBadge, SerieTag, ClockBadge } from "@/components/ui";
 import EstatusTimeline from "@/components/EstatusTimeline";
 import { getShipmentPublicoByFolio } from "@/lib/queries";
@@ -39,16 +41,7 @@ export default async function UnidadPublicaPage({ params }: { params: Promise<{ 
             <Card>
               <div className="p-5 flex flex-col sm:flex-row gap-4">
                 <div className="w-full sm:w-48 shrink-0">
-                  {shipment.fotoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={shipment.fotoUrl}
-                      alt=""
-                      className="w-full h-40 sm:h-36 object-cover rounded-xl border border-border"
-                    />
-                  ) : (
-                    <div className="w-full h-40 sm:h-36 rounded-xl bg-gray-100 border border-border" />
-                  )}
+                  <FotoMini src={fotoPublicaSrc(shipment, "full")} alt="" className="w-full h-40 sm:h-36 object-cover rounded-xl border border-border" fallbackClassName="w-full h-40 sm:h-36 rounded-xl bg-gray-100 border border-border" />
                 </div>
                 <div className="flex-1 min-w-0 space-y-2">
                   <div className="flex items-start justify-between gap-3 flex-wrap">

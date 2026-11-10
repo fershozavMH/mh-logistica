@@ -1,3 +1,5 @@
+import FotoMini from "@/components/FotoMini";
+import { fotoSrc } from "@/lib/foto-url";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import { Card, EmptyState, StatusBadge, SerieTag, ClockBadge } from "@/components/ui";
@@ -65,12 +67,7 @@ export default async function OperacionesPage({
                         className="flex gap-2.5 rounded-lg border border-border p-3 hover:border-brand-blue-500 hover:shadow-sm transition-all"
                       >
                         <div className="flex flex-col items-center gap-1 shrink-0">
-                          {s.fotoUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={s.fotoUrl} alt="" className="w-16 h-16 rounded-md object-cover border border-border" />
-                          ) : (
-                            <div className="w-16 h-16 rounded-md bg-gray-100" />
-                          )}
+                          <FotoMini src={fotoSrc(s, "thumb")} alt="" className="w-16 h-16 rounded-md object-cover border border-border" fallbackClassName="w-16 h-16 rounded-md bg-gray-100" />
                           {s.aduana && (
                             <span className="text-[10px] text-ink-muted text-center leading-tight max-w-16 truncate" title={s.aduana}>
                               {s.aduana}

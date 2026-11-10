@@ -1,3 +1,5 @@
+import FotoMini from "@/components/FotoMini";
+import { fotoSrc } from "@/lib/foto-url";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TopBar from "@/components/TopBar";
@@ -109,14 +111,9 @@ export default async function EmbarqueDetallePage({ params }: { params: Promise<
           <div className="flex flex-col md:flex-row gap-4">
             <div className="w-full md:w-64 shrink-0">
               {soloLectura ? (
-                shipment.fotoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={shipment.fotoUrl} alt="" className="w-full h-56 md:h-64 object-cover rounded-xl border border-border" />
-                ) : (
-                  <div className="w-full h-56 md:h-64 rounded-xl bg-gray-100 border border-border" />
-                )
+                <FotoMini src={fotoSrc(shipment, "full")} className="w-full h-56 md:h-64 object-cover rounded-xl border border-border" fallbackClassName="w-full h-56 md:h-64 rounded-xl bg-gray-100 border border-border" />
               ) : (
-                <FotoEquipo shipmentId={shipment.id} fotoUrl={shipment.fotoUrl} />
+                <FotoEquipo shipmentId={shipment.id} fotoUrl={fotoSrc(shipment, "full")} />
               )}
             </div>
             <div className="flex-1 flex flex-col justify-between gap-3">

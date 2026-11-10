@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { normalizarFoto } from "@/lib/imagenes";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -368,9 +369,10 @@ export async function updateShipmentInfo(shipmentId: string, formData: FormData)
 export async function guardarFotoEquipo(shipmentId: string, dataUrl: string): Promise<void> {
   await requireFullAccess();
   if (!dataUrl.startsWith("data:image/")) throw new Error("Imagen inválida");
+  const fotoUrl = await normalizarFoto(dataUrl);
   await prisma.shipment.update({
     where: { id: shipmentId },
-    data: { fotoUrl: dataUrl },
+    data: { fotoUrl },
   });
   sincronizarUnidadDespues(shipmentId);
   revalidatePath(`/embarques/${shipmentId}`);
@@ -992,7 +994,7 @@ export async function crearCotizacion(formData: FormData) {
       anio: str(formData, "anio"),
       origenCiudad: str(formData, "origenCiudad"),
       destinoCiudad: str(formData, "destinoCiudad"),
-      fotoUrl: str(formData, "fotoUrl"),
+      fotoUrl: await normalizarFoto(str(formData, "fotoUrl")),
       vendedor: str(formData, "vendedor"),
       costoFleteUSA: num(formData, "costoFleteUSA"),
       costoImportacion: num(formData, "costoImportacion"),
@@ -1018,7 +1020,7 @@ export async function editarCotizacion(id: string, formData: FormData) {
       anio: str(formData, "anio") ?? null,
       origenCiudad: str(formData, "origenCiudad") ?? null,
       destinoCiudad: str(formData, "destinoCiudad") ?? null,
-      fotoUrl: str(formData, "fotoUrl") ?? null,
+      fotoUrl: await normalizarFoto(str(formData, "fotoUrl")),
       vendedor: str(formData, "vendedor") ?? null,
       costoFleteUSA: num(formData, "costoFleteUSA"),
       costoImportacion: num(formData, "costoImportacion"),
@@ -1053,7 +1055,7 @@ export async function rechazarCotizacion(id: string) {
 // igual que se hizo con "Servicio Logístico". Queda ligada por shipmentId.
 export async function aceptarCotizacion(id: string) {
   await requireFullAccess();
-  const cot = await prisma.cotizacion.findUnique({ where: { id } });
+  const cot = await prisma.cotizacion.findUnique({ where: { id }, omit: { fotoUrl: false } });
   if (!cot || cot.shipmentId) return;
 
   const folio = await nextFolio();

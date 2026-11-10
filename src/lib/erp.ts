@@ -30,7 +30,7 @@ interface RespuestaLogUnidad {
 // llegaron del ERP (origenERP) no se mandan de regreso. Nunca truena: el
 // resultado queda en erpUnidadSincronizada / erpUnidadError.
 export async function sincronizarUnidadERP(shipmentId: string): Promise<{ ok: boolean; error?: string }> {
-  const s = await prisma.shipment.findUnique({ where: { id: shipmentId } });
+  const s = await prisma.shipment.findUnique({ where: { id: shipmentId }, omit: { fotoUrl: false } });
   if (!s) return { ok: false, error: "Unidad no encontrada" };
   if (s.origenERP) return { ok: true };
 

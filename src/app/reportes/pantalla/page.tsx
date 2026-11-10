@@ -1,3 +1,5 @@
+import FotoMini from "@/components/FotoMini";
+import { fotoSrc } from "@/lib/foto-url";
 import { StatusBadge, SerieTag, ClockBadge, EmptyState } from "@/components/ui";
 import EstatusTimeline from "@/components/EstatusTimeline";
 import AutoReload from "@/components/AutoReload";
@@ -15,7 +17,7 @@ export const dynamic = "force-dynamic";
 // DOS veces seguidas y se anima con translateY de 0% a -50%; como la
 // segunda copia es idéntica a la primera, el "regreso al inicio" no se ve
 // como un salto — es un bucle continuo e imperceptible, puro CSS, nunca se
-// traba). Se recarga sola cada 5 minutos para no quedarse con datos viejos.
+// traba). Refresca sus datos cada 10 minutos (ver AutoReload) para no quedarse con datos viejos.
 export default async function ReportesPantallaPage() {
   const diario = await getReporteDiario(new Date());
   const unidades = diario.unidadesEnOperacion;
@@ -30,12 +32,7 @@ export default async function ReportesPantallaPage() {
       <div className="px-8 py-5 border-b border-border">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
-            {s.fotoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={s.fotoUrl} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0 border border-border" />
-            ) : (
-              <div className="w-16 h-16 rounded-xl bg-gray-100 shrink-0" />
-            )}
+            <FotoMini src={fotoSrc(s, "thumb")} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0 border border-border" fallbackClassName="w-16 h-16 rounded-xl bg-gray-100 shrink-0" />
             <div className="min-w-0">
               <p className="text-xl text-ink-primary flex items-center gap-2 flex-wrap font-medium">
                 <span>
@@ -65,7 +62,7 @@ export default async function ReportesPantallaPage() {
 
   return (
     <div className="h-dvh w-full overflow-hidden bg-surface flex flex-col">
-      <AutoReload ms={5 * 60 * 1000} />
+      <AutoReload ms={10 * 60 * 1000} />
 
       <header className="flex items-center justify-between px-8 h-20 border-b border-border shrink-0">
         <div className="flex items-center gap-3">

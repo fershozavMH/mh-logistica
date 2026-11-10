@@ -77,7 +77,13 @@ export default function FotoEquipo({
       {preview ? (
         <div className={`relative ${alto} group`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={preview} alt="Foto del equipo" className="w-full h-full object-cover rounded-xl border border-border" />
+          <img
+            src={preview}
+            alt="Foto del equipo"
+            className="w-full h-full object-cover rounded-xl border border-border"
+            // la URL de /api/foto responde 404 si el equipo no tiene foto
+            onError={() => setPreview((p) => (p?.startsWith("data:") ? p : null))}
+          />
           <div className="absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
             <button
               type="button"

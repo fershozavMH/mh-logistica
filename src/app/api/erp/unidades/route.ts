@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { normalizarFoto } from "@/lib/imagenes";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
@@ -77,6 +78,16 @@ export async function POST(req: NextRequest) {
   }
   const d = parsed.data;
 
+  // La foto se re-codifica a WebP (máx. 1200 px, sin EXIF/GPS) antes de guardarla.
+  let fotoNormalizada: string | null | undefined;
+  if (d.fotoUrl !== undefined) {
+    try {
+      fotoNormalizada = await normalizarFoto(d.fotoUrl);
+    } catch {
+      return respuestaError(400, "Datos inválidos — fotoUrl no es una imagen válida");
+    }
+  }
+
   // Solo los campos que vienen en el body (undefined = no se toca).
   const campos = {
     equipoDescripcion: d.equipoDescripcion,
@@ -94,7 +105,7 @@ export async function POST(req: NextRequest) {
     provAgenteAduanal: d.provAgenteAduanal,
     fechaSalidaProgramada: d.fechaSalidaProgramada,
     millas: d.millas,
-    fotoUrl: d.fotoUrl,
+    fotoUrl: fotoNormalizada,
   };
 
   try {

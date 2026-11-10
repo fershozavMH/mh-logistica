@@ -1,5 +1,7 @@
 "use client";
 
+import FotoMini from "@/components/FotoMini";
+import { fotoSrc } from "@/lib/foto-url";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Pencil, Check, X } from "lucide-react";
@@ -11,7 +13,7 @@ export interface FilaCosto {
   id: string;
   folio: string;
   equipoDescripcion: string;
-  fotoUrl: string | null;
+  updatedAt: Date | string;
   serie: string;
   fechaInicio: Date | null;
   fechaEntrega: Date | null;
@@ -113,12 +115,7 @@ export default function CostosEditableTable({
               <tr key={s.id} className={`border-b border-border last:border-0 ${editando ? "bg-brand-blue-50" : "hover:bg-surface-muted"}`}>
                 <td className="px-5 py-2.5">
                   <Link href={`/embarques/${s.id}`} className="flex items-center gap-2.5">
-                    {s.fotoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.fotoUrl} alt="" className="w-9 h-9 rounded-md object-cover shrink-0 border border-border" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-md bg-gray-100 shrink-0" />
-                    )}
+                    <FotoMini src={fotoSrc(s, "thumb")} alt="" className="w-9 h-9 rounded-md object-cover shrink-0 border border-border" fallbackClassName="w-9 h-9 rounded-md bg-gray-100 shrink-0" />
                     <span>
                       <span className="block text-ink-primary hover:text-brand-blue-700 font-medium">{s.equipoDescripcion}</span>
                       <span className="block text-xs text-ink-muted">{s.folio}</span>

@@ -1,3 +1,5 @@
+import FotoMini from "@/components/FotoMini";
+import { fotoSrc } from "@/lib/foto-url";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -137,13 +139,8 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
         </div>
 
         <div className="flex gap-6 mb-8 print:mb-4">
-          {s?.fotoUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={s.fotoUrl}
-              alt={s.equipoDescripcion}
-              className="w-32 h-32 print:w-20 print:h-20 object-cover rounded-lg border border-border shrink-0"
-            />
+          {s && (
+            <FotoMini src={fotoSrc(s, "full")} alt={s.equipoDescripcion} className="w-32 h-32 print:w-20 print:h-20 object-cover rounded-lg border border-border shrink-0" />
           )}
           <div className="grid grid-cols-2 gap-6 text-sm flex-1">
             <div>

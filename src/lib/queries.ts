@@ -280,7 +280,8 @@ export async function getShipmentPublicoByFolio(folio: string) {
       cliente: true,
       categoria: true,
       estatus: true,
-      fotoUrl: true,
+      id: true,
+      updatedAt: true,
       origenCiudad: true,
       aduana: true,
       destinoCiudad: true,
@@ -301,8 +302,10 @@ export async function getCotizaciones() {
   });
 }
 
+// Incluye fotoUrl (se omite por defecto): la página de detalle solo la usa para
+// saber si hay foto y el formulario de edición la necesita para no borrarla.
 export async function getCotizacion(id: string) {
-  return prisma.cotizacion.findUnique({ where: { id } });
+  return prisma.cotizacion.findUnique({ where: { id }, omit: { fotoUrl: false } });
 }
 
 // Nombres de proveedores/agentes ya usados en el sistema (unidades reales +
