@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { esSoloLectura, getSesion } from "@/lib/auth-server";
-import { enviarOrdenAlERP, cancelarOrdenEnERP, sincronizarUnidadERP, sincronizarProveedores } from "@/lib/erp";
+import { enviarOrdenAlERP, cancelarOrdenEnERP, sincronizarUnidadERP, sincronizarProveedores, enviarEstimacionAlERP } from "@/lib/erp";
 import { registrarAuditoria } from "@/lib/audit";
 import { redondear2 } from "@/lib/validacion";
 import { ESTATUS_PAGO, FLETE_USA_SLOTS, gastoFleteUSAPerteneceASlot } from "@/lib/constants";
@@ -1169,4 +1169,52 @@ export async function importShipments(rows: ImportShipmentRow[]) {
   revalidatePath("/costos");
   revalidatePath("/mapa");
   return creados;
+}
+
+// ---------------------------------------------------------------------------
+// Estimaciones de costos (bandeja "Por cotizar")
+// ---------------------------------------------------------------------------
+
+export async function capturarEstimacion(formData: FormData) {
+  await requireFullAccess();
+  const id = str(formData, "id");
+  if (!id) throw new Error("Falta la solicitud.");
+  const fleteUSA = num(formData, "estFleteUSA");
+  const importacion = num(formData, "estImportacion");
+  validarMontos({ "Flete USA": fleteUSA, Importación: importacion });
+  const estimadoPor = await nombreSesion();
+
+  const actual = await prisma.solicitudEstimacion.findUnique({ where: { id } });
+  if (!actual) throw new Error("Solicitud no encontrada.");
+  if (actual.estatus === "Cancelada") throw new Error("Compras canceló esta solicitud.");
+
+  await prisma.solicitudEstimacion.update({
+    where: { id },
+    data: {
+      estFleteUSA: fleteUSA,
+      estImportacion: importacion,
+      estimadoPor,
+      estimadoAt: new Date(),
+      estatus: "Estimada",
+      erpEnviado: false,
+      erpError: null,
+    },
+  });
+  await registrarAuditoria({
+    accion: "estimacion.capturar",
+    entidad: "SolicitudEstimacion",
+    entidadId: actual.erpEquipoId,
+    usuario: await usuarioBitacora(),
+    detalle: `Flete USA ${fleteUSA} · Importación ${importacion}`,
+  });
+  await enviarEstimacionAlERP(id);
+  revalidatePath("/por-cotizar");
+}
+
+export async function reenviarEstimacion(formData: FormData) {
+  await requireFullAccess();
+  const id = str(formData, "id");
+  if (!id) throw new Error("Falta la solicitud.");
+  await enviarEstimacionAlERP(id);
+  revalidatePath("/por-cotizar");
 }

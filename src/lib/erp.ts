@@ -149,6 +149,7 @@ async function construirPayloadOrden(orderId: string, estatusPago?: string) {
       generadaPor: order.generadaPor,
       concepto: order.concepto,
       // montos siempre en USD; tipoCambio es USD → MXN
+      moneda: "USD",
       total: order.total,
       tipoCambio: order.tipoCambio,
       estatusPago: estatusPago ?? order.estatusPago,
@@ -453,4 +454,48 @@ export async function getOpcionesProveedores(): Promise<OpcionProveedor[]> {
       predeterminada: c.predeterminada,
     })),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Estimaciones (log_estimacion)
+// ---------------------------------------------------------------------------
+
+interface RespuestaLogEstimacion {
+  ok?: boolean;
+}
+
+// Manda al ERP los estimados de Logística de un equipo (montos en USD).
+// Nunca truena: el resultado queda en erpEnviado / erpError, y se puede
+// reenviar desde "Por cotizar".
+export async function enviarEstimacionAlERP(solicitudId: string): Promise<{ ok: boolean; error?: string }> {
+  const s = await prisma.solicitudEstimacion.findUnique({ where: { id: solicitudId } });
+  if (!s) return { ok: false, error: "Solicitud no encontrada" };
+  if (s.estimadoAt === null) return { ok: false, error: "Todavía no tiene estimado" };
+
+  try {
+    const r = await llamarERP<RespuestaLogEstimacion>({
+      metodo: "POST",
+      endpoint: "mh.api.log_estimacion",
+      body: {
+        equipoId: s.erpEquipoId,
+        moneda: "USD",
+        estimados: { fleteUSA: s.estFleteUSA ?? 0, importacion: s.estImportacion ?? 0 },
+        estimadoPor: s.estimadoPor,
+        fecha: s.estimadoAt,
+      },
+      referencia: s.erpEquipoId,
+    });
+    if (!r || r.ok === false) throw new ErpError("El ERP no confirmó el estimado", null, false);
+    await prisma.solicitudEstimacion.update({
+      where: { id: solicitudId },
+      data: { erpEnviado: true, erpError: null, erpEnviadoAt: new Date() },
+    });
+    return { ok: true };
+  } catch (err) {
+    const error = mensajeError(err).slice(0, 500);
+    await prisma.solicitudEstimacion
+      .update({ where: { id: solicitudId }, data: { erpEnviado: false, erpError: error } })
+      .catch(() => {});
+    return { ok: false, error };
+  }
 }

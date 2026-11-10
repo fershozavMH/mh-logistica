@@ -13,7 +13,11 @@ import {
   Upload,
   Handshake,
   Building2,
-  Eye, Users } from "lucide-react";
+  Eye,
+  Users,
+  Plug,
+  ClipboardList,
+} from "lucide-react";
 import Globe from "@/components/Globe";
 
 // Cohete con una estela/rayo grande, para que "viaje" por una ruta curva
@@ -70,6 +74,7 @@ const NAV = [
   { href: "/", label: "Inicio", icon: LayoutDashboard },
   { href: "/operaciones", label: "Operaciones", icon: Truck },
   { href: "/mapa", label: "Mapa de flujo", icon: Map },
+  { href: "/por-cotizar", label: "Por cotizar", icon: ClipboardList },
   { href: "/costos", label: "Costos y pagos", icon: Wallet },
   { href: "/cotizaciones", label: "Cotizaciones", icon: FileText },
   { href: "/ventas", label: "Ventas", icon: Handshake },
@@ -78,12 +83,12 @@ const NAV = [
   { href: "/importar", label: "Importar datos", icon: Upload },
 ];
 
-export default function Sidebar({ soloLectura = false, admin = false }: { soloLectura?: boolean; admin?: boolean }) {
+export default function Sidebar({ soloLectura = false, admin = false, porCotizar = 0 }: { soloLectura?: boolean; admin?: boolean; porCotizar?: number }) {
   const pathname = usePathname();
   if (pathname === "/login" || pathname.startsWith("/activar") || pathname.startsWith("/publico") || pathname === "/reportes/pantalla") return null;
 
   const base = soloLectura ? NAV.filter((item) => item.href !== "/importar") : NAV;
-  const items = admin ? [...base, { href: "/usuarios", label: "Usuarios", icon: Users }] : base;
+  const items = admin ? [...base, { href: "/usuarios", label: "Usuarios", icon: Users }, { href: "/integracion", label: "Integración ERP", icon: Plug }] : base;
 
   return (
     <aside className="no-print hidden md:flex md:w-64 md:flex-col bg-brand-navy text-white shrink-0">
@@ -120,6 +125,11 @@ export default function Sidebar({ soloLectura = false, admin = false }: { soloLe
             >
               <Icon size={18} strokeWidth={2} />
               {item.label}
+              {item.href === "/por-cotizar" && porCotizar > 0 && (
+                <span className="ml-auto rounded-full bg-brand-orange-500 px-2 py-0.5 text-xs font-semibold text-white">
+                  {porCotizar}
+                </span>
+              )}
             </Link>
           );
         })}

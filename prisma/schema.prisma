@@ -240,6 +240,42 @@ model PaymentOrder {
   @@index([estatusPago])
 }
 
+// Solicitud de estimación de costos que manda el ERP cuando Compras pide a
+// Logística cotizar un equipo (aún sin comprar). Jaime o Raúl capturan el
+// flete y la importación estimados aquí y se mandan al ERP (log_estimacion).
+// erpEquipoId = ID del equipo en el ERP (ej. EQUI-002077); una solicitud
+// nueva del mismo equipo reabre la anterior.
+model SolicitudEstimacion {
+  id                String    @id @default(cuid())
+  erpEquipoId       String    @unique
+  equipoDescripcion String
+  serie             String?
+  proveedor         String?
+  origenCiudad      String?
+  precioCompra      Float?
+  comprador         String?
+  solicitadoPor     String?
+  notas             String?
+
+  estatus           String    @default("Pendiente") // Pendiente | Estimada | Cancelada
+
+  // Estimados de Logística, en USD
+  estFleteUSA       Float?
+  estImportacion    Float?
+  estimadoPor       String?
+  estimadoAt        DateTime?
+
+  // Envío del estimado al ERP; si falla queda guardado y se puede reenviar.
+  erpEnviado        Boolean   @default(false)
+  erpError          String?
+  erpEnviadoAt      DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([estatus])
+}
+
 // Catálogo de proveedores del ERP (log_proveedores). El ERP manda: aquí solo
 // se sincroniza y se elige, no se captura a mano. id = ID del proveedor en el ERP.
 model ProveedorERP {
