@@ -214,6 +214,43 @@ ya existentes en `estatus` y `shipmentId` son suficientes; revisar `@prisma/clie
 
 ---
 
+# Bloque E. Mudanza a GitHub y Vercel de Fernando (despliegue hoy)
+
+Objetivo: tener la app activa hoy en un proyecto de Vercel fuera del equipo pausado,
+ya con las correcciones de consumo.
+
+## Alcance para hoy (lo que entra en el primer despliegue)
+- Bloque A pasos 2-3 (consultas sin base64, pantalla de TV) + Bloque D (fotos WebP con
+  miniatura y ruta cacheable, con migración de fotos existentes).
+- Bloque C básico: botón de envío con estado "Guardando..." y bloqueo de doble clic,
+  `loading.tsx` en las rutas principales.
+- Headers de seguridad y `AUTH_SECRET` nuevo.
+- **No entra hoy:** login con usuarios (Bloque B), porque requiere migración de BD y dar
+  de alta usuarios; va en un segundo despliegue.
+
+## Pasos
+1. Fernando crea el repo vacío `fershozavMH/mh-logistica` (privado) en GitHub.
+2. Se sube la rama `develop` corregida a ese repo (como `main`) conservando historial.
+3. Fernando importa el repo en su Vercel (Add New > Project, framework Next.js).
+4. Variables de entorno (copiar del proyecto actual, con valores nuevos donde se indica):
+   - `DATABASE_URL` (Neon; misma base, ver nota)
+   - `APP_PASSWORD`, `APP_PASSWORD_VIEW` → **valores nuevos**
+   - `AUTH_SECRET` → **nuevo**, 32+ caracteres aleatorios
+   - `MH_LOGISTICA_TOKEN` (el que usa el ERP para llamar a esta app)
+   - `ERP_API_SECRET` y la URL del ERP que use `erp-client.ts`
+5. Antes del primer deploy: respaldo de Neon (branch) y correr la migración de fotos.
+6. Deploy, pruebas de la lista de "Pruebas antes de pasar a master".
+7. **Avisar a Rubén la nueva URL** para que el ERP apunte a `/api/erp/*` del proyecto nuevo.
+8. Revisar Usage del proyecto nuevo al día siguiente.
+
+## Notas
+- Base de datos: se reutiliza la misma Neon; el proyecto viejo está pausado, así que no
+  hay dos apps escribiendo a la vez. Si se reactiva el viejo el 10-dic, apagarlo o
+  eliminar su dominio para no tener dos versiones.
+- Plan Hobby: uso no comercial según términos de Vercel; sirve de puente. Lo estable es
+  Pro en el equipo de MH.
+- Los links públicos que ya se mandaron a clientes cambian de dominio.
+
 # Orden sugerido de ejecución
 0. Rotar claves compartidas y fijar `AUTH_SECRET` (Jaime, en Vercel; 5 minutos).
 1. Bloque A pasos 2-3 + Bloque D (miniaturas WebP y ruta de fotos): baja el consumo.
