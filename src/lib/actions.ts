@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { esSoloLectura, getSesion } from "@/lib/auth-server";
 import { enviarOrdenAlERP, cancelarOrdenEnERP, sincronizarUnidadERP, sincronizarProveedores, enviarEstimacionAlERP } from "@/lib/erp";
 import { registrarAuditoria } from "@/lib/audit";
+import { PREFIJO_PROVEEDOR_LOGISTICA } from "@/lib/proveedores";
 import { redondear2 } from "@/lib/validacion";
 import { ESTATUS_PAGO, FLETE_USA_SLOTS, gastoFleteUSAPerteneceASlot } from "@/lib/constants";
 
@@ -54,6 +55,71 @@ function validarMontos(montos: Record<string, number>) {
 // (regla D5 — no se captura CLABE a mano). El formulario solo manda los ids;
 // los datos bancarios completos se copian aquí, del lado del servidor.
 async function datosBancariosDesdeCatalogo(formData: FormData) {
+  // Alternativa mientras el catálogo del ERP no está listo: se capturan a mano
+  // (solo con la casilla "capturar a mano"). La orden no lleva proveedorId, así
+  // que el ERP puede no aceptarla hasta que el proveedor exista allá; queda
+  // pendiente de sincronizar y se reintenta sola.
+  if (str(formData, "modoManual") === "1") {
+    const corto = (k: string, max = 200) => ((str(formData, k) ?? "").trim().slice(0, max)) || null;
+    const nombre = corto("proveedorNombre");
+    const numeroCuenta = corto("numeroCuenta", 60);
+    const clabe = corto("clabe", 60);
+    if (!nombre) throw new Error("Escribe el nombre del proveedor.");
+    if (!numeroCuenta && !clabe) throw new Error("Captura el número de cuenta o la CLABE del proveedor.");
+    const moneda = str(formData, "monedaCuenta");
+    const monedaOk = moneda === "USD" || moneda === "MXN" ? moneda : null;
+    const banco = corto("banco", 120);
+    const titular = corto("titular") ?? nombre;
+    const swift = corto("swift", 40);
+    const routing = corto("routing", 40);
+
+    // "Guardar para próximas órdenes": el proveedor entra a la lista con id
+    // LOG-… (no existe en el ERP; no lo borra ni lo pisa la sincronización).
+    let proveedorGuardadoId: string | null = null;
+    if (str(formData, "guardarProveedor") === "on") {
+      const existente = await prisma.proveedorERP.findFirst({
+        where: { id: { startsWith: PREFIJO_PROVEEDOR_LOGISTICA }, nombre: { equals: nombre, mode: "insensitive" } },
+        include: { cuentas: true },
+      });
+      const prov =
+        existente ??
+        (await prisma.proveedorERP.create({
+          data: { id: `${PREFIJO_PROVEEDOR_LOGISTICA}${crypto.randomUUID()}`, nombre, activo: true },
+          include: { cuentas: true },
+        }));
+      const yaTieneCuenta = prov.cuentas.some(
+        (c) => (c.clabeIban ?? null) === clabe && (c.numeroCuenta ?? null) === numeroCuenta && (c.moneda ?? null) === monedaOk
+      );
+      if (!yaTieneCuenta) {
+        await prisma.cuentaBancariaERP.create({
+          data: {
+            proveedorId: prov.id,
+            banco,
+            nombreCuenta: titular,
+            numeroCuenta,
+            clabeIban: clabe,
+            swift,
+            routing,
+            moneda: monedaOk,
+            predeterminada: prov.cuentas.length === 0,
+          },
+        });
+      }
+      proveedorGuardadoId = prov.id;
+    }
+    return {
+      proveedorId: proveedorGuardadoId,
+      proveedorNombre: nombre,
+      monedaCuenta: monedaOk,
+      banco,
+      numeroCuenta,
+      clabe,
+      titular,
+      swift,
+      routing,
+      sucursal: null as string | null,
+    };
+  }
   const proveedorId = str(formData, "proveedorId");
   const cuentaId = str(formData, "cuentaId");
   if (!proveedorId || !cuentaId) {
@@ -1217,4 +1283,81 @@ export async function reenviarEstimacion(formData: FormData) {
   if (!id) throw new Error("Falta la solicitud.");
   await enviarEstimacionAlERP(id);
   revalidatePath("/por-cotizar");
+}
+
+// ---------------------------------------------------------------------------
+// Pago marcado a mano (mientras el ERP no manda el estatus de pago)
+// ---------------------------------------------------------------------------
+// Solo el administrador. Queda marcado como "MANUAL" y en la bitácora; cuando
+// Finanzas confirma el pago desde el ERP, esos datos se reemplazan solos.
+
+const PAGO_MANUAL = "MANUAL";
+
+async function requireAdmin() {
+  const s = await getSesion();
+  if (!s || s.rol !== "total") throw new Error("Solo el administrador puede marcar pagos a mano.");
+  return s;
+}
+
+export async function marcarOrdenPagadaManual(orderId: string, formData: FormData): Promise<void> {
+  const sesion = await requireAdmin();
+  const order = await prisma.paymentOrder.findUnique({ where: { id: orderId } });
+  if (!order || order.eliminadaAt) return;
+  if (order.estatusPago !== ESTATUS_PAGO.PENDIENTE) redirect(`/orden-pago/${orderId}`);
+
+  const fechaTxt = str(formData, "fechaPago");
+  const fecha = fechaTxt ? new Date(`${fechaTxt}T12:00:00`) : new Date();
+  if (Number.isNaN(fecha.getTime())) throw new Error("La fecha de pago no es válida.");
+  const referencia = (str(formData, "referenciaBancaria") ?? "").slice(0, 100) || null;
+
+  const r = await prisma.paymentOrder.updateMany({
+    where: { id: orderId, estatusPago: ESTATUS_PAGO.PENDIENTE, eliminadaAt: null },
+    data: {
+      estatusPago: ESTATUS_PAGO.PAGADO,
+      erpPago: PAGO_MANUAL,
+      fechaPago: fecha,
+      referenciaBancaria: referencia,
+    },
+  });
+  if (r.count > 0) {
+    await registrarAuditoria({
+      accion: "orden.pagada_manual",
+      entidad: "PaymentOrder",
+      entidadId: order.folio,
+      usuario: `${sesion.nombre} <${sesion.email}>`,
+      detalle: `Pendiente → Pagado (a mano)${referencia ? ` · ref ${referencia}` : ""}`,
+    });
+  }
+  revalidatePath("/");
+  revalidatePath("/costos");
+  revalidatePath("/reportes");
+  revalidatePath(`/orden-pago/${orderId}`);
+  if (order.shipmentId) revalidatePath(`/embarques/${order.shipmentId}`);
+  redirect(`/orden-pago/${orderId}`);
+}
+
+export async function quitarPagoManual(orderId: string): Promise<void> {
+  const sesion = await requireAdmin();
+  const order = await prisma.paymentOrder.findUnique({ where: { id: orderId } });
+  if (!order || order.eliminadaAt) return;
+
+  const r = await prisma.paymentOrder.updateMany({
+    where: { id: orderId, estatusPago: ESTATUS_PAGO.PAGADO, erpPago: PAGO_MANUAL, eliminadaAt: null },
+    data: { estatusPago: ESTATUS_PAGO.PENDIENTE, erpPago: null, fechaPago: null, referenciaBancaria: null },
+  });
+  if (r.count > 0) {
+    await registrarAuditoria({
+      accion: "orden.pago_manual_revertido",
+      entidad: "PaymentOrder",
+      entidadId: order.folio,
+      usuario: `${sesion.nombre} <${sesion.email}>`,
+      detalle: "Pagado (a mano) → Pendiente",
+    });
+  }
+  revalidatePath("/");
+  revalidatePath("/costos");
+  revalidatePath("/reportes");
+  revalidatePath(`/orden-pago/${orderId}`);
+  if (order.shipmentId) revalidatePath(`/embarques/${order.shipmentId}`);
+  redirect(`/orden-pago/${orderId}`);
 }

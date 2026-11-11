@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
       return respuestaError(404, `No existe la orden ${d.folio} en MH Logística.`);
     }
 
-    if (orden.estatusPago === destino) {
+    // un pago marcado a mano en Logística se reemplaza con lo que confirma el ERP
+    if (orden.estatusPago === destino && orden.erpPago !== "MANUAL") {
       return NextResponse.json(
         { ok: true, folio: orden.folio, estatus: d.estatus, sinCambios: true },
         { headers: { "Cache-Control": "no-store" } }

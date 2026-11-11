@@ -26,16 +26,65 @@ export default function ProveedorCuentaSelect({
   const cuenta = proveedor?.cuentas.find((c) => c.id === cuentaId) ?? cuentaInicial;
   const [moneda, setMoneda] = useState<string>("");
   const monedaMostrada = moneda || cuenta?.moneda || "MXN";
+  const [manual, setManual] = useState(opciones.length === 0);
 
   return (
     <div className="space-y-3">
-      {opciones.length === 0 ? (
+      {opciones.length === 0 && (
         <p className="text-sm text-brand-orange-700 bg-brand-orange-100 rounded-lg px-3 py-2">
           No hay proveedores del ERP en el catálogo todavía.
-          {errorSync ? ` Último error: ${errorSync}` : ""} Los proveedores y sus cuentas se dan de alta en el ERP
-          (Finanzas los verifica); aquí solo se eligen.
+          {errorSync ? ` Último error: ${errorSync}` : ""} Mientras tanto puedes capturar el proveedor y su cuenta a mano.
         </p>
-      ) : (
+      )}
+      <label className="flex items-center gap-2 text-sm text-ink-secondary">
+        <input type="checkbox" checked={manual} onChange={(e) => setManual(e.target.checked)} />
+        El proveedor no está en el catálogo: capturar a mano
+      </label>
+      {manual && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-lg border border-border p-3">
+          <input type="hidden" name="modoManual" value="1" />
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="text-ink-secondary">Proveedor</span>
+            <input name="proveedorNombre" required maxLength={200} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-ink-secondary">Titular de la cuenta</span>
+            <input name="titular" maxLength={200} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-ink-secondary">Banco</span>
+            <input name="banco" maxLength={120} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-ink-secondary">Número de cuenta</span>
+            <input name="numeroCuenta" maxLength={60} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-ink-secondary">CLABE interbancaria</span>
+            <input name="clabe" maxLength={60} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-ink-secondary">SWIFT (opcional)</span>
+            <input name="swift" maxLength={40} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-ink-secondary">Routing (opcional)</span>
+            <input name="routing" maxLength={40} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink-secondary sm:col-span-2">
+            <input type="checkbox" name="guardarProveedor" defaultChecked />
+            Guardar este proveedor para próximas órdenes
+          </label>
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="text-ink-secondary">Moneda de la cuenta</span>
+            <select name="monedaCuenta" defaultValue="MXN" className="rounded-lg border border-border px-3 py-2 text-sm">
+              <option value="MXN">Cuenta en pesos (MXN)</option>
+              <option value="USD">Cuenta en dólares (USD)</option>
+            </select>
+          </label>
+        </div>
+      )}
+      {!manual && opciones.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             <span className="text-ink-secondary">Proveedor (catálogo del ERP)</span>

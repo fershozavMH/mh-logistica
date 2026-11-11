@@ -6,21 +6,22 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatFecha, formatMXN, formatPesos } from "@/lib/constants";
 import PrintButton from "@/components/PrintButton";
-import { cancelarOrdenDePago, eliminarOrdenDePago, reintentarEnvioERP } from "@/lib/actions";
+import { cancelarOrdenDePago, eliminarOrdenDePago, reintentarEnvioERP, marcarOrdenPagadaManual, quitarPagoManual } from "@/lib/actions";
 import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
-import { esSoloLectura } from "@/lib/auth-server";
+import { esSoloLectura, esAdmin } from "@/lib/auth-server";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function OrdenPagoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [order, soloLectura] = await Promise.all([
+  const [order, soloLectura, admin] = await Promise.all([
     prisma.paymentOrder.findUnique({
       where: { id },
       include: { shipment: true, gastosGenerales: { orderBy: { createdAt: "asc" } } },
     }),
     esSoloLectura(),
+    esAdmin(),
   ]);
   if (!order || order.eliminadaAt) notFound();
 
@@ -90,6 +91,42 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
           <PrintButton />
         </div>
       </div>
+
+      {admin && order.estatusPago === "Pendiente" && (
+        <form
+          action={marcarOrdenPagadaManual.bind(null, order.id)}
+          className="no-print max-w-3xl mx-auto mt-6 rounded-lg border border-border bg-white px-4 py-3 flex flex-wrap items-end gap-3 text-sm"
+        >
+          <div className="flex-1 min-w-48">
+            <p className="font-medium text-ink-primary">Marcar como pagada (a mano)</p>
+            <p className="text-xs text-ink-muted">Solo administrador. Queda registrado y, cuando Finanzas confirme en el ERP, se reemplaza solo.</p>
+          </div>
+          <label className="flex flex-col gap-1 text-xs text-ink-secondary">
+            Fecha de pago
+            <input type="date" name="fechaPago" className="rounded-lg border border-border px-3 py-1.5 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-ink-secondary">
+            Referencia (opcional)
+            <input name="referenciaBancaria" maxLength={100} className="rounded-lg border border-border px-3 py-1.5 text-sm" />
+          </label>
+          <ConfirmSubmitButton
+            confirmText={`¿Marcar la orden ${order.folio} como pagada? Se hace a mano, sin confirmación del ERP.`}
+            className="rounded-lg bg-brand-navy text-white text-sm font-medium px-4 py-2"
+          >
+            Marcar pagada
+          </ConfirmSubmitButton>
+        </form>
+      )}
+      {admin && order.estatusPago === "Pagado" && order.erpPago === "MANUAL" && (
+        <div className="no-print max-w-3xl mx-auto mt-6 rounded-lg bg-brand-orange-100 text-brand-orange-700 px-4 py-3 flex items-center justify-between gap-3 text-sm">
+          <span>Pago marcado a mano; Finanzas aún no lo confirma en el ERP.</span>
+          <form action={quitarPagoManual.bind(null, order.id)}>
+            <ConfirmSubmitButton confirmText={`¿Quitar el pago manual de ${order.folio} y dejarla pendiente?`} className="rounded-lg border border-current text-xs px-3 py-1.5">
+              Quitar pago manual
+            </ConfirmSubmitButton>
+          </form>
+        </div>
+      )}
 
       {(order.erpError || order.erpAviso || order.estatusPago === "Pendiente") && (
         <div className="no-print max-w-3xl mx-auto mt-6 space-y-2 text-sm">
@@ -221,7 +258,7 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
                 <p className="col-span-2">
                   <span className="text-ink-muted">Proveedor: </span>
                   <span className="text-ink-primary font-medium">{order.proveedorNombre}</span>
-                  {order.proveedorId && <span className="text-ink-muted"> ({order.proveedorId})</span>}
+                  {order.proveedorId && !order.proveedorId.startsWith("LOG-") && <span className="text-ink-muted"> ({order.proveedorId})</span>}
                 </p>
               )}
               {order.monedaCuenta && (
@@ -292,7 +329,7 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
 
         {order.estatusPago === "Pagado" && (order.fechaPago || order.erpPago || order.referenciaBancaria) && (
           <div className="mb-8 print:mb-4 text-sm rounded-lg bg-brand-blue-50 p-4 print:p-3">
-            <p className="text-xs uppercase tracking-wide text-ink-muted mb-2 font-semibold">Pago confirmado por Finanzas</p>
+            <p className="text-xs uppercase tracking-wide text-ink-muted mb-2 font-semibold">{order.erpPago === "MANUAL" ? "Pago marcado a mano" : "Pago confirmado por Finanzas"}</p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               {order.fechaPago && (
                 <p>
@@ -308,7 +345,7 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
                   </span>
                 </p>
               )}
-              {order.erpPago && (
+              {order.erpPago && order.erpPago !== "MANUAL" && (
                 <p>
                   <span className="text-ink-muted">Pago en ERP: </span>
                   <span className="text-ink-primary font-medium">{order.erpPago}</span>

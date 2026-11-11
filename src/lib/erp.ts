@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { llamarERP, ErpError } from "@/lib/erp-client";
+import { PREFIJO_PROVEEDOR_LOGISTICA, esProveedorDeLogistica } from "@/lib/proveedores";
 import { registrarAuditoria } from "@/lib/audit";
 import { ESTATUS_PAGO } from "@/lib/constants";
 
@@ -154,8 +155,12 @@ async function construirPayloadOrden(orderId: string, estatusPago?: string) {
       tipoCambio: order.tipoCambio,
       estatusPago: estatusPago ?? order.estatusPago,
       notas: order.notas,
-      proveedorId: order.proveedorId,
+      // los proveedores propios de Logística no existen en el ERP: va solo el nombre
+      proveedorId: esProveedorDeLogistica(order.proveedorId) ? null : order.proveedorId,
       proveedorNombre: order.proveedorNombre,
+      // proveedor propio de Logística (no está en el catálogo del ERP): este id
+      // es estable, para que el ERP lo reconozca si lo da de alta
+      proveedorLogisticaId: esProveedorDeLogistica(order.proveedorId) ? order.proveedorId : null,
       costos: {
         fleteUSA: order.costoFleteUSA,
         importacion: order.costoImportacion,
@@ -359,7 +364,7 @@ export async function sincronizarProveedores(opciones: { forzar?: boolean; rapid
   }
 
   const inicio = new Date();
-  const hayCatalogo = (await prisma.proveedorERP.count()) > 0;
+  const hayCatalogo = (await prisma.proveedorERP.count({ where: { NOT: { id: { startsWith: PREFIJO_PROVEEDOR_LOGISTICA } } } })) > 0;
   const desde = estado && hayCatalogo && !estado.ultimoError ? formatoFrappe(new Date(estado.ultimaVez.getTime() - 24 * 3600 * 1000)) : undefined;
 
   try {
@@ -446,7 +451,7 @@ export async function getOpcionesProveedores(): Promise<OpcionProveedor[]> {
   });
   return proveedores.map((p) => ({
     id: p.id,
-    nombre: p.nombre,
+    nombre: esProveedorDeLogistica(p.id) ? `${p.nombre} (Logística)` : p.nombre,
     cuentas: p.cuentas.map((c) => ({
       id: c.id,
       etiqueta: [c.banco, c.nombreCuenta, ultimos4(c.clabeIban) ?? ultimos4(c.numeroCuenta)].filter(Boolean).join(" — "),
