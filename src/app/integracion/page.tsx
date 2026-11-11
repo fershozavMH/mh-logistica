@@ -6,7 +6,7 @@ import CopiarTexto from "@/components/CopiarTexto";
 import { prisma } from "@/lib/prisma";
 import { getSesion } from "@/lib/auth-server";
 import { erpConfigurado } from "@/lib/erp-client";
-import { probarConexionERP } from "@/lib/integracion-actions";
+import { probarConexionERP, sincronizarProveedoresAhora } from "@/lib/integracion-actions";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ function hostERP(): string {
   }
 }
 
-export default async function IntegracionPage({ searchParams }: { searchParams: Promise<{ r?: string; u?: string; ms?: string; m?: string; s?: string }> }) {
+export default async function IntegracionPage({ searchParams }: { searchParams: Promise<{ r?: string; u?: string; ms?: string; m?: string; s?: string; p?: string; n?: string }> }) {
   const sesion = await getSesion();
   if (!sesion || sesion.rol !== "total") redirect("/");
   const q = await searchParams;
@@ -31,7 +31,10 @@ export default async function IntegracionPage({ searchParams }: { searchParams: 
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const base = `${h.get("x-forwarded-proto") ?? "https"}://${host}`;
 
-  const [estados, bitacora, ordenesPend, unidadesPend, estimPend] = await Promise.all([
+  const [provTotal, provActivos, cuentasTotal, estados, bitacora, ordenesPend, unidadesPend, estimPend] = await Promise.all([
+    prisma.proveedorERP.count(),
+    prisma.proveedorERP.count({ where: { activo: true } }),
+    prisma.cuentaBancariaERP.count(),
     prisma.integracionEstado.findMany({ orderBy: { clave: "asc" } }),
     prisma.auditLog.findMany({ where: { entidad: "ERP" }, orderBy: { fecha: "desc" }, take: 15, select: { id: true, fecha: true, accion: true, httpStatus: true, detalle: true, entidadId: true } }),
     prisma.paymentOrder.count({ where: { erpEnviado: false, estatusPago: { not: "Cancelada" } } }).catch(() => 0),
@@ -82,6 +85,30 @@ export default async function IntegracionPage({ searchParams }: { searchParams: 
               <p className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
                 No se pudo: {q.m}{q.s ? ` (HTTP ${q.s})` : ""}
               </p>
+            )}
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="Catálogo de proveedores del ERP" subtitle="Las órdenes de pago solo pueden ir a proveedores de este catálogo." />
+          <div className="p-5 divide-y divide-border">
+            {fila("Proveedores guardados en la app", `${provTotal} (${provActivos} activos)`)}
+            {fila("Cuentas bancarias guardadas", cuentasTotal)}
+            {estados.filter((e) => e.clave === "proveedores").map((e) => fila("Última descarga del catálogo", `${fecha(e.ultimaVez)}${e.ultimoError ? " · con error: " + e.ultimoError : ""}`))}
+          </div>
+          <div className="px-5 pb-5 space-y-3">
+            <form action={sincronizarProveedoresAhora}>
+              <SubmitButton pendingText="Descargando…" className="rounded-lg border border-border text-sm font-medium px-4 py-2">
+                Descargar catálogo ahora
+              </SubmitButton>
+            </form>
+            {q.p === "ok" && (
+              <p className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                El ERP mandó {q.n} proveedor(es).{q.n === "0" ? " Si debería haber más, el ERP no los está devolviendo en mh.api.log_proveedores." : ""}
+              </p>
+            )}
+            {q.p === "error" && (
+              <p className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">No se pudo: {q.m}</p>
             )}
           </div>
         </Card>

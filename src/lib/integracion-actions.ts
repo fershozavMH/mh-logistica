@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getSesion } from "@/lib/auth-server";
 import { llamarERP, ErpError } from "@/lib/erp-client";
 import { registrarAuditoria } from "@/lib/audit";
+import { sincronizarProveedores } from "@/lib/erp";
 
 // Prueba de conexión con el ERP (solo administrador). Llama un método de
 // Frappe que no cambia nada: pregunta con qué usuario entró. No muestra ni
@@ -36,4 +37,23 @@ export async function probarConexionERP() {
     detalle: destino.includes("r=ok") ? "ok" : "error",
   });
   redirect(destino);
+}
+
+// Fuerza la descarga completa del catálogo de proveedores y dice cuántos
+// llegaron (solo administrador). Sirve para saber si el ERP manda proveedores.
+export async function sincronizarProveedoresAhora() {
+  const sesion = await getSesion();
+  if (!sesion || sesion.rol !== "total") redirect("/");
+  const r = await sincronizarProveedores({ forzar: true });
+  await registrarAuditoria({
+    accion: "erp.sincronizar_proveedores_manual",
+    entidad: "ERP",
+    usuario: sesion.nombre,
+    detalle: r.ok ? `${r.actualizados ?? 0} proveedores recibidos` : (r.error ?? "error").slice(0, 300),
+  });
+  redirect(
+    r.ok
+      ? `/integracion?p=ok&n=${r.actualizados ?? 0}`
+      : `/integracion?p=error&m=${encodeURIComponent((r.error ?? "Error").slice(0, 300))}`
+  );
 }
