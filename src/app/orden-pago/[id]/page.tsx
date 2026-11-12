@@ -307,7 +307,7 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
               )}
               {order.routing && (
                 <p>
-                  <span className="text-ink-muted">Routing (ABA): </span>
+                  <span className="text-ink-muted">ABA / Routing (ABA): </span>
                   <span className="text-ink-primary font-medium">{order.routing}</span>
                 </p>
               )}

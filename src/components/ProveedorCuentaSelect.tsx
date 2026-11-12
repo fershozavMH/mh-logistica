@@ -56,11 +56,11 @@ export default function ProveedorCuentaSelect({
             <input name="banco" maxLength={120} className="rounded-lg border border-border px-3 py-2 text-sm" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink-secondary">Número de cuenta</span>
+            <span className="text-ink-secondary">Número de cuenta del beneficiario</span>
             <input name="numeroCuenta" maxLength={60} className="rounded-lg border border-border px-3 py-2 text-sm" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink-secondary">CLABE interbancaria</span>
+            <span className="text-ink-secondary">CLABE interbancaria del beneficiario</span>
             <input name="clabe" maxLength={60} className="rounded-lg border border-border px-3 py-2 text-sm" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -68,8 +68,12 @@ export default function ProveedorCuentaSelect({
             <input name="swift" maxLength={40} className="rounded-lg border border-border px-3 py-2 text-sm" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink-secondary">Routing (opcional)</span>
+            <span className="text-ink-secondary">Código ABA / routing (cuentas en USA)</span>
             <input name="routing" maxLength={40} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="text-ink-secondary">Dirección del beneficiario</span>
+            <input name="direccionTitular" maxLength={300} className="rounded-lg border border-border px-3 py-2 text-sm" />
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-secondary sm:col-span-2">
             <input type="checkbox" name="guardarProveedor" defaultChecked />

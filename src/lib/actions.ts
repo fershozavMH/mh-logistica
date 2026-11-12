@@ -72,6 +72,7 @@ async function datosBancariosDesdeCatalogo(formData: FormData) {
     const titular = corto("titular") ?? nombre;
     const swift = corto("swift", 40);
     const routing = corto("routing", 40);
+    const direccion = corto("direccionTitular", 300);
 
     // "Guardar para próximas órdenes": el proveedor entra a la lista con id
     // LOG-… (no existe en el ERP; no lo borra ni lo pisa la sincronización).
@@ -87,10 +88,16 @@ async function datosBancariosDesdeCatalogo(formData: FormData) {
           data: { id: `${PREFIJO_PROVEEDOR_LOGISTICA}${crypto.randomUUID()}`, nombre, activo: true },
           include: { cuentas: true },
         }));
-      const yaTieneCuenta = prov.cuentas.some(
+      const cuentaExistente = prov.cuentas.find(
         (c) => (c.clabeIban ?? null) === clabe && (c.numeroCuenta ?? null) === numeroCuenta && (c.moneda ?? null) === monedaOk
       );
-      if (!yaTieneCuenta) {
+      if (cuentaExistente) {
+        // si ahora se capturó dirección o routing, se completa la cuenta guardada
+        await prisma.cuentaBancariaERP.update({
+          where: { id: cuentaExistente.id },
+          data: { direccion: direccion ?? cuentaExistente.direccion, routing: routing ?? cuentaExistente.routing, swift: swift ?? cuentaExistente.swift },
+        });
+      } else {
         await prisma.cuentaBancariaERP.create({
           data: {
             proveedorId: prov.id,
@@ -100,6 +107,7 @@ async function datosBancariosDesdeCatalogo(formData: FormData) {
             clabeIban: clabe,
             swift,
             routing,
+            direccion,
             moneda: monedaOk,
             predeterminada: prov.cuentas.length === 0,
           },
@@ -118,6 +126,7 @@ async function datosBancariosDesdeCatalogo(formData: FormData) {
       swift,
       routing,
       sucursal: null as string | null,
+      direccionTitular: direccion,
     };
   }
   const proveedorId = str(formData, "proveedorId");
@@ -145,6 +154,7 @@ async function datosBancariosDesdeCatalogo(formData: FormData) {
     swift: cuenta.swift,
     routing: cuenta.routing,
     sucursal: cuenta.sucursal,
+    direccionTitular: cuenta.direccion,
   };
 }
 

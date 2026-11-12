@@ -301,6 +301,7 @@ model CuentaBancariaERP {
   swift          String?
   routing        String?
   sucursal       String?
+  direccion      String? // dirección del beneficiario (la capturan en Logística)
   moneda         String?
   predeterminada Boolean      @default(false)
 
