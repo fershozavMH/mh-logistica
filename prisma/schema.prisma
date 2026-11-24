@@ -247,7 +247,13 @@ model PaymentOrder {
 // nueva del mismo equipo reabre la anterior.
 model SolicitudEstimacion {
   id                String    @id @default(cuid())
+  // Código fijo del equipo en el ERP (EQUI-002077). Sourcing renombra el
+  // documento ("(EQUI-002077) - 2007 Peterbilt..."), así que la llave es solo
+  // el código; el nombre completo va en erpEquipoNombre.
   erpEquipoId       String    @unique
+  // Último nombre de documento que mandó el ERP; es el que se le regresa en
+  // log_estimacion (Frappe identifica el documento por ese nombre).
+  erpEquipoNombre   String?
   equipoDescripcion String
   serie             String?
   proveedor         String?

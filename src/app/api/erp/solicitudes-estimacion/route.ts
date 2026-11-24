@@ -24,7 +24,12 @@ import { registrarAuditoria } from "@/lib/audit";
 //   "cancelar": false                           // true = Compras canceló la solicitud
 // }
 //
-// Upsert por erpEquipoId: un reenvío no duplica. Si el equipo ya estaba
+// Sourcing renombra el documento del equipo en el ERP, así que erpEquipoId
+// puede llegar como "(EQUI-002077) - 2007 Peterbilt 357" o "EQUI-002077 -
+// Trompo...". La llave de la solicitud es solo el código EQUI-######; el texto
+// completo se guarda en erpEquipoNombre y es el que se regresa al ERP.
+//
+// Upsert por código de equipo: un reenvío (o un renombre) no duplica. Si el equipo ya estaba
 // estimado y Compras vuelve a pedir, la solicitud se reabre (queda
 // Pendiente, conservando el estimado anterior a la vista). Con
 // "cancelar": true pasa a Cancelada.
@@ -44,6 +49,13 @@ const solicitudSchema = z.object({
   cancelar: z.boolean().optional(),
 });
 
+// "(EQUI-002545) - 1998 NATIONAL 600C…" → "EQUI-002545". Si no trae un
+// código con ese formato, se usa el texto tal cual (sin espacios de más).
+function codigoEquipo(texto: string): string {
+  const m = /EQUI-\d+/i.exec(texto);
+  return m ? m[0].toUpperCase() : texto.trim();
+}
+
 export async function POST(req: NextRequest) {
   const bloqueo = verificarPeticionERP(req);
   if (bloqueo) return bloqueo;
@@ -55,7 +67,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return respuestaError(400, `Datos inválidos — ${mensajeValidacion(parsed.error.issues)}`);
   }
-  const { cancelar, ...d } = parsed.data;
+  const { cancelar, ...datos } = parsed.data;
+  const erpEquipoNombre = datos.erpEquipoId;
+  const d = { ...datos, erpEquipoId: codigoEquipo(datos.erpEquipoId) };
 
   try {
     const existente = await prisma.solicitudEstimacion.findUnique({ where: { erpEquipoId: d.erpEquipoId } });
@@ -64,7 +78,7 @@ export async function POST(req: NextRequest) {
       if (!existente) return respuestaError(404, `No hay solicitud para el equipo ${d.erpEquipoId}.`);
       const s = await prisma.solicitudEstimacion.update({
         where: { erpEquipoId: d.erpEquipoId },
-        data: { estatus: "Cancelada" },
+        data: { estatus: "Cancelada", erpEquipoNombre },
       });
       await registrarAuditoria({
         accion: "erp.entrante.estimacion.cancelar",
@@ -82,6 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     const campos = {
+      erpEquipoNombre,
       equipoDescripcion: d.equipoDescripcion,
       serie: d.serie,
       proveedor: d.proveedor,

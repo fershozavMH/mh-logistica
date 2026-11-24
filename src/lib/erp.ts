@@ -482,7 +482,8 @@ export async function enviarEstimacionAlERP(solicitudId: string): Promise<{ ok: 
       metodo: "POST",
       endpoint: "mh.api.log_estimacion",
       body: {
-        equipoId: s.erpEquipoId,
+        // el ERP busca el documento por su nombre completo (el último que nos mandó)
+        equipoId: s.erpEquipoNombre ?? s.erpEquipoId,
         moneda: "USD",
         estimados: { fleteUSA: s.estFleteUSA ?? 0, importacion: s.estImportacion ?? 0 },
         estimadoPor: s.estimadoPor,
