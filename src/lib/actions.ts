@@ -1258,6 +1258,12 @@ export async function capturarEstimacion(formData: FormData) {
   const fleteUSA = num(formData, "estFleteUSA");
   const importacion = num(formData, "estImportacion");
   validarMontos({ "Flete USA": fleteUSA, Importación: importacion });
+  if (fleteUSA === 0 && importacion === 0) throw new Error("Captura al menos el flete o la importación.");
+  // tope de seguridad: un estimado de más de 1 millón de USD por concepto es
+  // casi seguro un error de captura (dígitos de más)
+  if (fleteUSA > 1_000_000 || importacion > 1_000_000) {
+    throw new Error("Un monto pasa de 1,000,000 USD; revisa que no tenga dígitos de más.");
+  }
   const estimadoPor = await nombreSesion();
 
   const actual = await prisma.solicitudEstimacion.findUnique({ where: { id } });

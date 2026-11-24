@@ -1,6 +1,8 @@
 import { ClipboardList, Clock, CheckCircle2 } from "lucide-react";
 import TopBar from "@/components/TopBar";
-import { Card, CardHeader, EmptyState, StatCard, MoneyInput, Pill } from "@/components/ui";
+import { Card, CardHeader, EmptyState, StatCard, Pill } from "@/components/ui";
+import FormEstimacion from "@/components/FormEstimacion";
+import SubmitButton from "@/components/SubmitButton";
 import { capturarEstimacion, reenviarEstimacion } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { esSoloLectura } from "@/lib/auth-server";
@@ -17,27 +19,17 @@ function getSolicitudes() {
   });
 }
 
-function FormEstimacion({ s, soloLectura }: { s: Solicitud; soloLectura: boolean }) {
+function FormularioEstimacion({ s, soloLectura }: { s: Solicitud; soloLectura: boolean }) {
+  if (soloLectura) return null;
   return (
-    <form action={capturarEstimacion} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
-      <input type="hidden" name="id" value={s.id} />
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-ink-secondary">Flete USA (USD)</span>
-        <MoneyInput name="estFleteUSA" defaultValue={s.estFleteUSA ?? ""} />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-ink-secondary">Importación (USD)</span>
-        <MoneyInput name="estImportacion" defaultValue={s.estImportacion ?? ""} />
-      </label>
-      {!soloLectura && (
-        <button
-          type="submit"
-          className="rounded-lg bg-brand-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-orange-600"
-        >
-          {s.estatus === "Estimada" ? "Actualizar y enviar" : "Enviar estimado"}
-        </button>
-      )}
-    </form>
+    <FormEstimacion
+      id={s.id}
+      equipo={s.erpEquipoId}
+      fleteUSA={s.estFleteUSA}
+      importacion={s.estImportacion}
+      estimada={s.estatus === "Estimada"}
+      accion={capturarEstimacion}
+    />
   );
 }
 
@@ -89,7 +81,7 @@ export default async function PorCotizarPage() {
                       .join(" · ")}
                   </p>
                   {s.notas && <p className="text-sm text-ink-secondary">“{s.notas}”</p>}
-                  <FormEstimacion s={s} soloLectura={soloLectura} />
+                  <FormularioEstimacion s={s} soloLectura={soloLectura} />
                 </div>
               ))}
             </div>
@@ -117,17 +109,19 @@ export default async function PorCotizarPage() {
                   {!soloLectura && !s.erpEnviado && (
                     <form action={reenviarEstimacion}>
                       <input type="hidden" name="id" value={s.id} />
-                      <button type="submit" className="rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-gray-50">
+                      <SubmitButton pendingText="Reenviando…" className="rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-gray-50">
                         Reenviar al ERP
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
-                  <details>
-                    <summary className="text-xs text-brand-blue-700 cursor-pointer">Corregir estimado</summary>
-                    <div className="pt-3">
-                      <FormEstimacion s={s} soloLectura={soloLectura} />
-                    </div>
-                  </details>
+                  {!soloLectura && (
+                    <details>
+                      <summary className="text-xs text-brand-blue-700 cursor-pointer">Corregir estimado</summary>
+                      <div className="pt-3">
+                        <FormularioEstimacion s={s} soloLectura={soloLectura} />
+                      </div>
+                    </details>
+                  )}
                 </div>
               ))}
             </div>
