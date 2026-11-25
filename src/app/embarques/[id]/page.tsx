@@ -220,6 +220,7 @@ export default async function EmbarqueDetallePage({ params }: { params: Promise<
                   ["Agente aduanal", shipment.provAgenteAduanal],
                   ["Millas recorridas", shipment.millas > 0 ? `${shipment.millas.toLocaleString("es-MX")} mi` : null],
                   ["ID en el ERP", shipment.erpId],
+                  ["Equipo en el ERP", shipment.erpEquipoId],
                   [
                     "Sincronización con ERP",
                     shipment.origenERP

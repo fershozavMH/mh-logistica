@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { verificarPeticionERP, leerJSON, respuestaError, mensajeValidacion, ipDe } from "@/lib/erp-auth";
 import { textoCorto, monto } from "@/lib/validacion";
 import { registrarAuditoria } from "@/lib/audit";
+import { codigoEquipo } from "@/lib/erp-equipo";
 
 // POST /api/erp/solicitudes-estimacion
 // El ERP lo llama cuando Compras pulsa "Solicitar estimación a Logística" en
@@ -48,13 +49,6 @@ const solicitudSchema = z.object({
   notas: textoCorto(1000),
   cancelar: z.boolean().optional(),
 });
-
-// "(EQUI-002545) - 1998 NATIONAL 600C…" → "EQUI-002545". Si no trae un
-// código con ese formato, se usa el texto tal cual (sin espacios de más).
-function codigoEquipo(texto: string): string {
-  const m = /EQUI-\d+/i.exec(texto);
-  return m ? m[0].toUpperCase() : texto.trim();
-}
 
 export async function POST(req: NextRequest) {
   const bloqueo = verificarPeticionERP(req);

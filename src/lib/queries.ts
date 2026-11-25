@@ -262,6 +262,7 @@ export async function getShipmentsBoard() {
       fechaEntrega: true,
       fechaSalidaProgramada: true,
       tiempoCicloDias: true,
+      erpEquipoId: true,
       updatedAt: true,
     },
     orderBy: [{ estatus: "asc" }, { updatedAt: "desc" }],

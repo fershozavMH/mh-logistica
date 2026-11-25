@@ -74,6 +74,12 @@ model Shipment {
   // unidad (reintento, etc.), se actualiza en vez de duplicarla.
   erpId             String?  @unique
 
+  // Código del equipo en el ERP (EQUI-002077) cuando la unidad nació de una
+  // estimación de "Por cotizar" (Logística cotizó antes de la compra). Es la
+  // llave para no duplicar: re-cotizar el mismo equipo no crea otra unidad, y
+  // cuando el ERP manda el Trato (/api/erp/unidades) se liga a esta misma.
+  erpEquipoId       String?  @unique
+
   // ID del proveedor de compra en el ERP (catálogo de log_proveedores).
   proveedorCompraId String?
 
