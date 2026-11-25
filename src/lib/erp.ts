@@ -176,6 +176,10 @@ async function construirPayloadOrden(orderId: string, estatusPago?: string) {
       },
       detalleFleteUSA: order.detalleFleteUSA,
       gastosGenerales: order.gastosGenerales.map((g) => ({ descripcion: g.descripcion, monto: g.monto })),
+      // Transferencia | Efectivo. En efectivo los datos bancarios van vacíos
+      // (solo monedaCuenta = moneda en que se paga, y titular = quién recibe);
+      // se manda el objeto igual para no romper al ERP mientras no lea formaPago.
+      formaPago: order.formaPago,
       datosBancarios: {
         monedaCuenta: order.monedaCuenta,
         banco: order.banco,

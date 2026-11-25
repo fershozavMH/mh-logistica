@@ -250,10 +250,18 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
           </div>
         )}
 
-        {(order.proveedorNombre || order.monedaCuenta || order.banco || order.numeroCuenta || order.clabe || order.titular) && (
+        {(order.formaPago === "Efectivo" || order.proveedorNombre || order.monedaCuenta || order.banco || order.numeroCuenta || order.clabe || order.titular) && (
           <div className="mb-8 print:mb-4 text-sm border border-border rounded-lg p-4 print:p-3">
-            <p className="text-xs uppercase tracking-wide text-ink-muted mb-2 font-semibold">Datos bancarios para el pago</p>
+            <p className="text-xs uppercase tracking-wide text-ink-muted mb-2 font-semibold">
+              {order.formaPago === "Efectivo" ? "Datos del pago" : "Datos bancarios para el pago"}
+            </p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              <p className="col-span-2">
+                <span className="text-ink-muted">Forma de pago: </span>
+                <span className="text-ink-primary font-medium">
+                  {order.formaPago === "Efectivo" ? "Efectivo (sin cuenta bancaria)" : "Transferencia bancaria"}
+                </span>
+              </p>
               {order.proveedorNombre && (
                 <p className="col-span-2">
                   <span className="text-ink-muted">Proveedor: </span>
@@ -263,7 +271,7 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
               )}
               {order.monedaCuenta && (
                 <p>
-                  <span className="text-ink-muted">Cuenta en: </span>
+                  <span className="text-ink-muted">{order.formaPago === "Efectivo" ? "Se paga en: " : "Cuenta en: "}</span>
                   <span className="text-ink-primary font-medium">
                     {order.monedaCuenta === "USD" ? "Dólares (USD)" : "Pesos (MXN)"}
                   </span>
@@ -295,7 +303,7 @@ export default async function OrdenPagoPage({ params }: { params: Promise<{ id: 
               )}
               {order.titular && (
                 <p>
-                  <span className="text-ink-muted">Titular: </span>
+                  <span className="text-ink-muted">{order.formaPago === "Efectivo" ? "Recibe: " : "Titular: "}</span>
                   <span className="text-ink-primary font-medium">{order.titular}</span>
                 </p>
               )}

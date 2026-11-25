@@ -10,7 +10,7 @@ import { enviarOrdenAlERP, cancelarOrdenEnERP, sincronizarUnidadERP, sincronizar
 import { registrarAuditoria } from "@/lib/audit";
 import { PREFIJO_PROVEEDOR_LOGISTICA } from "@/lib/proveedores";
 import { redondear2 } from "@/lib/validacion";
-import { ESTATUS_PAGO, FLETE_USA_SLOTS, gastoFleteUSAPerteneceASlot } from "@/lib/constants";
+import { ESTATUS_PAGO, FLETE_USA_SLOTS, FORMA_PAGO, gastoFleteUSAPerteneceASlot, type FormaPago } from "@/lib/constants";
 
 // Barrera real de seguridad para el acceso de "solo lectura" (Dirección): el
 // botón ya se oculta en la UI, pero esto bloquea igual si alguien manda la
@@ -55,6 +55,54 @@ function validarMontos(montos: Record<string, number>) {
 // (regla D5 — no se captura CLABE a mano). El formulario solo manda los ids;
 // los datos bancarios completos se copian aquí, del lado del servidor.
 async function datosBancariosDesdeCatalogo(formData: FormData) {
+  const formaPago: FormaPago = str(formData, "formaPago") === FORMA_PAGO.EFECTIVO ? FORMA_PAGO.EFECTIVO : FORMA_PAGO.TRANSFERENCIA;
+  if (formaPago === FORMA_PAGO.EFECTIVO) return datosPagoEfectivo(formData);
+  return { formaPago, ...(await datosCuentaBancaria(formData)) };
+}
+
+// Pago en efectivo (ej. choferes): solo proveedor y quién recibe. Nunca se
+// guardan datos bancarios aunque lleguen en el formulario. Un proveedor
+// capturado a mano se guarda siempre como propio de Logística (LOG-…), para
+// que el ERP lo reconozca por ese id y no lo duplique.
+async function datosPagoEfectivo(formData: FormData) {
+  const moneda = str(formData, "monedaCuenta");
+  const monedaPago = moneda === "USD" ? "USD" : "MXN";
+  const sinBanco = {
+    formaPago: FORMA_PAGO.EFECTIVO,
+    monedaCuenta: monedaPago,
+    banco: null as string | null,
+    numeroCuenta: null as string | null,
+    clabe: null as string | null,
+    swift: null as string | null,
+    routing: null as string | null,
+    sucursal: null as string | null,
+    direccionTitular: null as string | null,
+  };
+  if (str(formData, "modoManual") === "1") {
+    const nombre = ((str(formData, "proveedorNombre") ?? "").trim().slice(0, 200)) || null;
+    if (!nombre) throw new Error("Escribe el nombre de a quién se le paga.");
+    const titular = ((str(formData, "titular") ?? "").trim().slice(0, 200)) || nombre;
+    const prov =
+      (await prisma.proveedorERP.findFirst({
+        where: { id: { startsWith: PREFIJO_PROVEEDOR_LOGISTICA }, nombre: { equals: nombre, mode: "insensitive" } },
+      })) ??
+      (await prisma.proveedorERP.create({
+        data: { id: `${PREFIJO_PROVEEDOR_LOGISTICA}${crypto.randomUUID()}`, nombre, activo: true },
+      }));
+    return { ...sinBanco, proveedorId: prov.id, proveedorNombre: prov.nombre, titular };
+  }
+  const proveedorId = str(formData, "proveedorId");
+  if (!proveedorId) throw new Error("Elige a qué proveedor se le paga.");
+  const proveedor = await prisma.proveedorERP.findUnique({ where: { id: proveedorId } });
+  if (!proveedor) throw new Error("Ese proveedor no está en el catálogo.");
+  if (!proveedor.activo) {
+    throw new Error(`El proveedor ${proveedor.nombre} está inactivo en el ERP; no se le pueden generar órdenes nuevas.`);
+  }
+  const titular = ((str(formData, "titular") ?? "").trim().slice(0, 200)) || proveedor.nombre;
+  return { ...sinBanco, proveedorId: proveedor.id, proveedorNombre: proveedor.nombre, titular };
+}
+
+async function datosCuentaBancaria(formData: FormData) {
   // Alternativa mientras el catálogo del ERP no está listo: se capturan a mano
   // (solo con la casilla "capturar a mano"). La orden no lleva proveedorId, así
   // que el ERP puede no aceptarla hasta que el proveedor exista allá; queda
@@ -731,7 +779,7 @@ export async function generarOrdenDePago(shipmentId: string, formData: FormData)
     entidad: "PaymentOrder",
     entidadId: order.folio,
     usuario: await usuarioBitacora(),
-    detalle: `Unidad ${s.folio} · total USD ${total} · proveedor ${datosBancarios.proveedorNombre}`,
+    detalle: `Unidad ${s.folio} · total USD ${total} · ${datosBancarios.formaPago} · proveedor ${datosBancarios.proveedorNombre}`,
   });
 
   await enviarOrdenAlERP(order.id);
@@ -954,7 +1002,7 @@ export async function generarOrdenDePagoGeneral(formData: FormData): Promise<voi
     entidad: "PaymentOrder",
     entidadId: order.folio,
     usuario: await usuarioBitacora(),
-    detalle: `Orden general · total USD ${total} · proveedor ${datosBancarios.proveedorNombre}`,
+    detalle: `Orden general · total USD ${total} · ${datosBancarios.formaPago} · proveedor ${datosBancarios.proveedorNombre}`,
   });
 
   await enviarOrdenAlERP(order.id);

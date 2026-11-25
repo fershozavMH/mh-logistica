@@ -157,6 +157,13 @@ export const ESTATUS_PAGO = {
   CANCELADA: "Cancelada",
 } as const;
 
+// Cómo paga Finanzas una orden. En efectivo no se piden datos bancarios.
+export const FORMA_PAGO = {
+  TRANSFERENCIA: "Transferencia",
+  EFECTIVO: "Efectivo",
+} as const;
+export type FormaPago = (typeof FORMA_PAGO)[keyof typeof FORMA_PAGO];
+
 // Conceptos comunes que componen el costo de Flete USA (no es un solo viaje,
 // son varios gastos que se van sumando) — sugerencia, no lista cerrada.
 export const CONCEPTOS_GASTO_FLETE_USA = ["Viáticos", "Vuelos", "Gastos generales", "Comisión"] as const;
