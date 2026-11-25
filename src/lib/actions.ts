@@ -5,6 +5,7 @@ import { normalizarFoto } from "@/lib/imagenes";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { esSoloLectura, getSesion } from "@/lib/auth-server";
 import { enviarOrdenAlERP, cancelarOrdenEnERP, sincronizarUnidadERP, sincronizarProveedores, enviarEstimacionAlERP } from "@/lib/erp";
 import { registrarAuditoria } from "@/lib/audit";
@@ -1337,8 +1338,119 @@ export async function capturarEstimacion(formData: FormData) {
     usuario: await usuarioBitacora(),
     detalle: `Flete USA ${fleteUSA} · Importación ${importacion}`,
   });
+  // Lo cotizado pasa a Operaciones → Pendiente con los datos del equipo. Si
+  // falla, el estimado ya quedó guardado y se manda al ERP igual.
+  try {
+    await operacionDesdeEstimacion(id);
+  } catch (err) {
+    console.error("[capturarEstimacion] no se pudo crear la operación", err);
+    await registrarAuditoria({
+      accion: "estimacion.operacion.error",
+      entidad: "SolicitudEstimacion",
+      entidadId: actual.erpEquipoId,
+      usuario: await usuarioBitacora(),
+      detalle: err instanceof Error ? err.message : "Error desconocido",
+    });
+  }
   await enviarEstimacionAlERP(id);
   revalidatePath("/por-cotizar");
+  revalidatePath("/");
+  revalidatePath("/operaciones");
+}
+
+const usd = (n: number | null | undefined) =>
+  (n ?? 0).toLocaleString("es-MX", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
+
+// Crea (o completa) la unidad en Operaciones → "Pendiente" a partir de una
+// solicitud de "Por cotizar" ya estimada. Llave: el código EQUI del equipo,
+// así que re-cotizar o corregir el estimado nunca duplica la unidad.
+//
+// - Los datos del equipo salen de lo que mandó el ERP en la solicitud.
+// - Los costos de la unidad son los REALES (lo que se paga con órdenes de
+//   pago), así que el estimado no se copia ahí: queda en la bitácora.
+// - origenERP = true: el equipo es del ERP (todavía sin Trato), así que no
+//   se manda de regreso con log_unidad; el Trato llega después por
+//   /api/erp/unidades y se liga a esta misma unidad.
+async function operacionDesdeEstimacion(solicitudId: string) {
+  const sol = await prisma.solicitudEstimacion.findUnique({ where: { id: solicitudId } });
+  if (!sol) return;
+  const usuario = await nombreSesion();
+  const resumen = [
+    `Estimado de Logística: Flete USA ${usd(sol.estFleteUSA)} · Importación ${usd(sol.estImportacion)}`,
+    sol.precioCompra != null && `Precio de compra ${usd(sol.precioCompra)}`,
+    sol.comprador && `Comprador: ${sol.comprador}`,
+    sol.solicitadoPor && `Pidió: ${sol.solicitadoPor}`,
+    sol.notas && `Notas de Compras: ${sol.notas}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const existente = await prisma.shipment.findUnique({ where: { erpEquipoId: sol.erpEquipoId } });
+  if (existente) {
+    // Solo se llenan los campos que sigan vacíos: no se pisa lo que
+    // Logística ya corrigió a mano en la unidad.
+    const completar: Prisma.ShipmentUpdateInput = {};
+    if (sol.serie && (!existente.serie || existente.serie === "S/N")) completar.serie = sol.serie;
+    if (sol.proveedor && !existente.proveedorCompra) completar.proveedorCompra = sol.proveedor;
+    if (sol.origenCiudad && !existente.origenCiudad) completar.origenCiudad = sol.origenCiudad;
+    if (Object.keys(completar).length) {
+      await prisma.shipment.update({ where: { id: existente.id }, data: completar });
+    }
+    await prisma.statusEvent.create({
+      data: {
+        shipmentId: existente.id,
+        estatusAnterior: existente.estatus,
+        estatusNuevo: existente.estatus,
+        usuario,
+        comentario: `Estimado actualizado en Por cotizar (${sol.erpEquipoId}). ${resumen}`,
+      },
+    });
+    return existente.id;
+  }
+
+  const datos = {
+    erpEquipoId: sol.erpEquipoId,
+    equipoDescripcion: sol.equipoDescripcion || "Equipo sin descripción",
+    serie: sol.serie || "S/N",
+    cliente: "Sin cliente",
+    proveedorCompra: sol.proveedor,
+    origenCiudad: sol.origenCiudad,
+    estatus: "Pendiente",
+    origenERP: true,
+    erpUnidadSincronizada: true,
+    fechaInicio: new Date(),
+  };
+
+  // Dos intentos por si dos altas simultáneas toman el mismo folio.
+  let shipment;
+  for (let intento = 0; intento < 2 && !shipment; intento++) {
+    try {
+      shipment = await prisma.shipment.create({ data: { ...datos, folio: await nextFolio() } });
+    } catch (err) {
+      if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") || intento === 1) throw err;
+      // si el choque fue por el código EQUI (doble clic), ya existe: no se duplica
+      const ahora = await prisma.shipment.findUnique({ where: { erpEquipoId: sol.erpEquipoId }, select: { id: true } });
+      if (ahora) return ahora.id;
+    }
+  }
+  if (!shipment) return;
+
+  await prisma.statusEvent.create({
+    data: {
+      shipmentId: shipment.id,
+      estatusNuevo: "Pendiente",
+      usuario,
+      comentario: `Unidad dada de alta desde Por cotizar (equipo ${sol.erpEquipoId} del ERP). ${resumen}`,
+    },
+  });
+  await registrarAuditoria({
+    accion: "estimacion.operacion.crear",
+    entidad: "Shipment",
+    entidadId: shipment.folio,
+    usuario: await usuarioBitacora(),
+    detalle: `Equipo ${sol.erpEquipoId}`,
+  });
+  return shipment.id;
 }
 
 export async function reenviarEstimacion(formData: FormData) {

@@ -23,7 +23,7 @@ export default async function OperacionesPage({
   const { estatus: filtro, buscar } = await searchParams;
   const todos = await getShipmentsBoard();
   const coinciden = buscar
-    ? todos.filter((s) => coincideBusqueda(buscar, [s.equipoDescripcion, s.cliente, s.serie, s.folio]))
+    ? todos.filter((s) => coincideBusqueda(buscar, [s.equipoDescripcion, s.cliente, s.serie, s.folio, s.erpEquipoId]))
     : todos;
 
   // Entregadas: las más recientes primero. Sin filtro ni búsqueda solo se
@@ -97,7 +97,10 @@ export default async function OperacionesPage({
                           <ClockBadge fechaInicio={s.fechaInicio} fechaEntrega={s.fechaEntrega} tiempoCicloDias={s.tiempoCicloDias} />
                         </div>
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-[11px] text-ink-muted">{s.folio}</span>
+                          <span className="text-[11px] text-ink-muted">
+                            {s.folio}
+                            {s.erpEquipoId && <span title="Equipo del ERP cotizado en Por cotizar"> · {s.erpEquipoId}</span>}
+                          </span>
                           {col.key === "Entregado" ? (
                             s.fechaEntrega && (
                               <span className="text-[11px] font-medium text-brand-navy">

@@ -7,6 +7,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { verificarPeticionERP, leerJSON, respuestaError, mensajeValidacion, ipDe } from "@/lib/erp-auth";
 import { textoCorto, fechaISO, monto } from "@/lib/validacion";
 import { registrarAuditoria } from "@/lib/audit";
+import { codigoEquipo } from "@/lib/erp-equipo";
 
 // POST /api/erp/unidades
 // El ERP lo llama cuando Compras da clic en "Enviar a Logística" en el Trato.
@@ -23,12 +24,18 @@ import { registrarAuditoria } from "@/lib/audit";
 //   "proveedorCompra": "Proveedor SA",
 //   "proveedorCompraId": "PROV-0001",           // ID del proveedor en el ERP
 //   "fechaInicio": "2026-10-29",
-//   "fotoUrl": "data:image/jpeg;base64,..."     // hasta ~1.5 MB
+//   "fotoUrl": "data:image/jpeg;base64,...",    // hasta ~1.5 MB
+//   "erpEquipoId": "EQUI-002077"                // opcional — equipo del catálogo
 // }
 //
 // Upsert por erpId: si ya existe una unidad con ese erpId se actualiza (solo
 // los campos que vienen; nunca se le cambia el estatus ni el folio), si no,
 // se crea en "Pendiente". Un reenvío nunca duplica.
+//
+// Si el equipo ya se había cotizado en "Por cotizar", la unidad ya existe
+// (creada al estimar, sin erpId). Se liga a esa misma en vez de crear otra:
+// por el código EQUI si el ERP lo manda, o si no, por la serie (solo si hay
+// exactamente una unidad cotizada sin Trato con esa serie).
 //
 // Respuesta: { "ok": true, "id": "<id interno>", "folio": "MH-2026-0001", "creado": true }
 
@@ -52,6 +59,7 @@ const unidadSchema = z.object({
   fechaInicio: fechaISO.optional(),
   fechaSalidaProgramada: fechaISO.optional(),
   millas: monto.optional(),
+  erpEquipoId: textoCorto(150),
   fotoUrl: z
     .string()
     .max(MAX_FOTO, "la foto excede 3 MB")
@@ -63,6 +71,26 @@ async function nextFolio() {
   const last = await prisma.shipment.findFirst({ orderBy: { folio: "desc" }, select: { folio: true } });
   const n = last ? parseInt(last.folio.split("-").pop() ?? "0", 10) || 0 : 0;
   return `MH-2026-${String(n + 1).padStart(4, "0")}`;
+}
+
+// Unidad creada desde "Por cotizar" que todavía no tiene Trato.
+async function unidadCotizadaSinTrato(erpEquipoId: string | undefined, serie: string | undefined) {
+  if (erpEquipoId) {
+    const u = await prisma.shipment.findUnique({
+      where: { erpEquipoId: codigoEquipo(erpEquipoId) },
+      select: { id: true, erpId: true, erpEquipoId: true },
+    });
+    if (u && !u.erpId) return u;
+    if (u) return null; // ese equipo ya tiene otro Trato: no se mezcla
+  }
+  const s = serie?.trim();
+  if (!s || s.toUpperCase() === "S/N") return null;
+  const candidatas = await prisma.shipment.findMany({
+    where: { erpId: null, erpEquipoId: { not: null }, serie: { equals: s, mode: "insensitive" } },
+    select: { id: true, erpId: true, erpEquipoId: true },
+    take: 2,
+  });
+  return candidatas.length === 1 ? candidatas[0] : null;
 }
 
 export async function POST(req: NextRequest) {
@@ -112,10 +140,25 @@ export async function POST(req: NextRequest) {
 
   try {
     const existente = await prisma.shipment.findUnique({ where: { erpId: d.erpId }, select: { id: true } });
+    const cotizada = existente ? null : await unidadCotizadaSinTrato(d.erpEquipoId, d.serie);
 
     let shipment;
     let creado = false;
-    if (existente) {
+    if (cotizada) {
+      shipment = await prisma.shipment.update({
+        where: { id: cotizada.id },
+        data: { ...campos, erpId: d.erpId, origenERP: true, erpUnidadSincronizada: true },
+      });
+      await prisma.statusEvent.create({
+        data: {
+          shipmentId: shipment.id,
+          estatusAnterior: shipment.estatus,
+          estatusNuevo: shipment.estatus,
+          usuario: "ERP",
+          comentario: `El ERP mandó el Trato ${d.erpId}; se ligó a la unidad cotizada (${cotizada.erpEquipoId})`,
+        },
+      });
+    } else if (existente) {
       shipment = await prisma.shipment.update({
         where: { erpId: d.erpId },
         data: { ...campos, ...(d.fechaInicio ? { fechaInicio: d.fechaInicio } : {}), origenERP: true },
