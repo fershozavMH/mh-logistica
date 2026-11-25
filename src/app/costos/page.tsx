@@ -216,6 +216,9 @@ export default async function CostosPage({
                         <Link href={`/orden-pago/${o.id}`} className="text-brand-blue-700 hover:underline font-medium">
                           {o.folio}
                         </Link>
+                        {o.formaPago === "Efectivo" && (
+                          <span className="ml-2 rounded bg-surface-muted px-1.5 py-0.5 text-xs text-ink-secondary">Efectivo</span>
+                        )}
                       </td>
                       <td className="px-5 py-2.5 text-ink-primary">
                         {o.shipment ? (

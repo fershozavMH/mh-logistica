@@ -27,9 +27,25 @@ export default function ProveedorCuentaSelect({
   const [moneda, setMoneda] = useState<string>("");
   const monedaMostrada = moneda || cuenta?.moneda || "MXN";
   const [manual, setManual] = useState(opciones.length === 0);
+  const [formaPago, setFormaPago] = useState<"Transferencia" | "Efectivo">("Transferencia");
+  const efectivo = formaPago === "Efectivo";
 
   return (
     <div className="space-y-3">
+      <fieldset className="flex flex-wrap items-center gap-4 text-sm">
+        <legend className="text-ink-secondary mb-1">Forma de pago</legend>
+        {(["Transferencia", "Efectivo"] as const).map((f) => (
+          <label key={f} className="flex items-center gap-2">
+            <input type="radio" name="formaPago" value={f} checked={formaPago === f} onChange={() => setFormaPago(f)} />
+            {f === "Transferencia" ? "Transferencia bancaria" : "Efectivo (sin cuenta bancaria)"}
+          </label>
+        ))}
+      </fieldset>
+      {efectivo && (
+        <p className="text-xs text-ink-muted">
+          Finanzas entrega el pago en efectivo. No se piden datos bancarios; solo a quién se le paga.
+        </p>
+      )}
       {opciones.length === 0 && (
         <p className="text-sm text-brand-orange-700 bg-brand-orange-100 rounded-lg px-3 py-2">
           No hay proveedores del ERP en el catálogo todavía.
@@ -40,7 +56,22 @@ export default function ProveedorCuentaSelect({
         <input type="checkbox" checked={manual} onChange={(e) => setManual(e.target.checked)} />
         El proveedor no está en el catálogo: capturar a mano
       </label>
-      {manual && (
+      {manual && efectivo && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-lg border border-border p-3">
+          <input type="hidden" name="modoManual" value="1" />
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="text-ink-secondary">A quién se le paga (ej. nombre del chofer)</span>
+            <input name="proveedorNombre" required maxLength={200} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-ink-secondary">Quién recibe el efectivo (si es otra persona)</span>
+            <input name="titular" maxLength={200} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <MonedaPago />
+          <p className="text-xs text-ink-muted sm:col-span-2">Se guarda en la lista de proveedores de Logística para próximas órdenes.</p>
+        </div>
+      )}
+      {manual && !efectivo && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-lg border border-border p-3">
           <input type="hidden" name="modoManual" value="1" />
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
@@ -88,7 +119,27 @@ export default function ProveedorCuentaSelect({
           </label>
         </div>
       )}
-      {!manual && opciones.length > 0 && (
+      {!manual && opciones.length > 0 && efectivo && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="text-ink-secondary">Proveedor (catálogo)</span>
+            <select name="proveedorId" required defaultValue="" className="rounded-lg border border-border px-3 py-2 text-sm">
+              <option value="">Elige un proveedor…</option>
+              {opciones.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-ink-secondary">Quién recibe el efectivo (opcional)</span>
+            <input name="titular" maxLength={200} className="rounded-lg border border-border px-3 py-2 text-sm" />
+          </label>
+          <MonedaPago />
+        </div>
+      )}
+      {!manual && opciones.length > 0 && !efectivo && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             <span className="text-ink-secondary">Proveedor (catálogo del ERP)</span>
@@ -164,5 +215,17 @@ export default function ProveedorCuentaSelect({
         </button>
       </div>
     </div>
+  );
+}
+
+function MonedaPago() {
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      <span className="text-ink-secondary">Moneda en que se paga</span>
+      <select name="monedaCuenta" defaultValue="MXN" className="rounded-lg border border-border px-3 py-2 text-sm">
+        <option value="MXN">Pesos (MXN)</option>
+        <option value="USD">Dólares (USD)</option>
+      </select>
+    </label>
   );
 }

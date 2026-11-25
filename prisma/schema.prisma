@@ -187,7 +187,13 @@ model PaymentOrder {
   estatusPago       String   @default("Pendiente") // Pendiente | Pagado | Cancelada
   notas             String?
 
-  // Datos bancarios para hacer el pago (se capturan al generar la orden)
+  // Cómo paga Finanzas esta orden: Transferencia (default, con cuenta del
+  // proveedor) o Efectivo (sin datos bancarios; ej. choferes). El ERP elige
+  // con esto el modo de pago del Payment Entry.
+  formaPago         String   @default("Transferencia") // Transferencia | Efectivo
+
+  // Datos bancarios para hacer el pago (se capturan al generar la orden).
+  // En efectivo van vacíos; monedaCuenta queda como la moneda en que se paga.
   monedaCuenta      String? // USD | MXN — en qué moneda está la cuenta a la que se paga
   banco             String?
   direccionBanco    String?
